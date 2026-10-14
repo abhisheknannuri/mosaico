@@ -4,7 +4,7 @@
 //!
 //! The engine integrates directly with the configured [`store::Store`] to resolve
 //! paths and access data sources like Parquet files efficiently.
-use super::{Error, IndexSpecifier, OntologyExprGroup, OntologyField, Op, Value};
+use super::{Error, IndexSpecifier, OntologyField, OntologyPredicateGroup, Op, Value};
 use arrow::datatypes::{DataType, Schema, SchemaRef};
 use datafusion::execution::SendableRecordBatchStream;
 use datafusion::execution::disk_manager::DiskManagerBuilder;
@@ -164,12 +164,12 @@ impl TimeseriesResult {
         Ok(self)
     }
 
-    pub fn filter<V>(self, filter: OntologyExprGroup<V>) -> Result<Self, Error>
+    pub fn filter<V>(self, filter: OntologyPredicateGroup<V>) -> Result<Self, Error>
     where
         V: Into<Value>,
     {
         let schema = self.data_frame.schema().as_arrow().clone();
-        let expr = expr_group_to_df_expr(filter, &schema)?;
+        let expr = predicate_group_to_df_expr(filter, &schema)?;
 
         let data_frame = if let Some(expr) = expr {
             // Resolve LambdaVariable.field for any higher-order functions (e.g.
@@ -732,8 +732,8 @@ fn all_op_struct_to_df_expr<V: Into<Value>>(
     }
 }
 
-fn expr_group_to_df_expr<V>(
-    filter: OntologyExprGroup<V>,
+fn predicate_group_to_df_expr<V>(
+    filter: OntologyPredicateGroup<V>,
     schema: &Schema,
 ) -> Result<Option<Expr>, Error>
 where
@@ -741,8 +741,8 @@ where
 {
     let mut ret: Option<Expr> = None;
 
-    for expr in filter.into_iter() {
-        let (field, op) = expr.into_parts();
+    for predicate in filter.into_iter() {
+        let (field, op) = predicate.into_parts();
         let parsed = field.field_path();
 
         let expr = match parsed.specifier() {
@@ -868,7 +868,7 @@ mod tests {
             .await
             .unwrap();
 
-        let expr_grp = OntologyExprGroup::new(vec![
+        let predicate_grp = OntologyPredicateGroup::new(vec![
             (
                 OntologyField::try_new("tag.value".to_owned()).unwrap(),
                 Op::Between(Range::try_new(3, 5).unwrap()),
@@ -876,7 +876,7 @@ mod tests {
                 .into(),
         ]);
 
-        let res = res.filter(expr_grp).unwrap();
+        let res = res.filter(predicate_grp).unwrap();
 
         let ts_range = res.timestamp_range().await.unwrap();
 

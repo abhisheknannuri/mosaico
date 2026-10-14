@@ -1,9 +1,7 @@
-import json
-
 import pytest
 
 from mosaicolabs import IMU, Pressure, Temperature, TimestampRange
-from mosaicolabs.proto.v1 import responses_pb2
+from mosaicolabs.proto.v1 import query_pb2, responses_pb2
 from mosaicolabs.query import (
     QueryResponseItem,
     QueryResponseItemTopic,
@@ -83,6 +81,47 @@ def temperature_query_sequence() -> QueryResponseItem:
     return qri
 
 
+def _predicate(field: str, op: query_pb2.Operator, value: query_pb2.Value):
+    return query_pb2.OntologyPredicate(
+        field=field, condition=query_pb2.Condition(op=op, value=value)
+    )
+
+
+IMU_ONTOLOGY_FILTER = query_pb2.OntologyFilter(
+    predicates=[
+        _predicate(
+            f"{IMU.ontology_tag()}.acceleration.x",
+            query_pb2.OPERATOR_GT,
+            query_pb2.Value(float=5.0),
+        ),
+        _predicate(
+            f"{IMU.ontology_tag()}.acceleration.y",
+            query_pb2.OPERATOR_EQ,
+            query_pb2.Value(float=20.0),
+        ),
+    ]
+)
+
+PRESSURE_ONTOLOGY_FILTER = query_pb2.OntologyFilter(
+    predicates=[
+        _predicate(
+            f"{Pressure.ontology_tag()}.value",
+            query_pb2.OPERATOR_BETWEEN,
+            query_pb2.Value(float_array=query_pb2.FloatArray(values=[1.0, 5.0])),
+        ),
+    ]
+)
+
+TEMPERATURE_ONTOLOGY_FILTER = query_pb2.OntologyFilter(
+    predicates=[
+        _predicate(
+            f"{Temperature.ontology_tag()}.value",
+            query_pb2.OPERATOR_LT,
+            query_pb2.Value(float=3.0),
+        ),
+    ]
+)
+
 #####################################
 ############### TESTS ###############
 #####################################
@@ -96,10 +135,7 @@ def test_create_clusterize_payload(imu_query_topic):
 
     assert clusterize_payload.locator == "seq1/front_imu"
     assert clusterize_payload.clustering_dt_ns == 0
-    assert json.loads(clusterize_payload.ontology) == {
-        f"{IMU.ontology_tag()}.acceleration.x": {"$gt": 5.0},
-        f"{IMU.ontology_tag()}.acceleration.y": {"$eq": 20.0},
-    }
+    assert clusterize_payload.ontology == IMU_ONTOLOGY_FILTER
     assert not clusterize_payload.HasField("timestamp_range")
 
     # Creating payload with clustering_dt_ns
@@ -110,10 +146,7 @@ def test_create_clusterize_payload(imu_query_topic):
 
     assert clusterize_payload_w_dt_ns.locator == "seq1/front_imu"
     assert clusterize_payload_w_dt_ns.clustering_dt_ns == 200
-    assert json.loads(clusterize_payload_w_dt_ns.ontology) == {
-        f"{IMU.ontology_tag()}.acceleration.x": {"$gt": 5.0},
-        f"{IMU.ontology_tag()}.acceleration.y": {"$eq": 20.0},
-    }
+    assert clusterize_payload_w_dt_ns.ontology == IMU_ONTOLOGY_FILTER
     assert not clusterize_payload_w_dt_ns.HasField("timestamp_range")
 
     # Creating payload with clustering_dt_ns and timestamp_range
@@ -125,10 +158,7 @@ def test_create_clusterize_payload(imu_query_topic):
 
     assert clusterize_payload_w_dt_ns_w_timestamp.locator == "seq1/front_imu"
     assert clusterize_payload_w_dt_ns_w_timestamp.clustering_dt_ns == 200
-    assert json.loads(clusterize_payload_w_dt_ns_w_timestamp.ontology) == {
-        f"{IMU.ontology_tag()}.acceleration.x": {"$gt": 5.0},
-        f"{IMU.ontology_tag()}.acceleration.y": {"$eq": 20.0},
-    }
+    assert clusterize_payload_w_dt_ns_w_timestamp.ontology == IMU_ONTOLOGY_FILTER
     assert clusterize_payload_w_dt_ns_w_timestamp.HasField("timestamp_range")
     assert clusterize_payload_w_dt_ns_w_timestamp.timestamp_range.start_ns == 1
     assert clusterize_payload_w_dt_ns_w_timestamp.timestamp_range.end_ns == 10
@@ -141,7 +171,7 @@ def test_create_clusterize_empty_payload(empty_query_topic):
 
     assert clusterize_payload.locator == "seq1/empty"
     assert clusterize_payload.clustering_dt_ns == 0
-    assert json.loads(clusterize_payload.ontology) == {}
+    assert clusterize_payload.ontology == query_pb2.OntologyFilter()
     assert not clusterize_payload.HasField("timestamp_range")
 
 
@@ -167,17 +197,10 @@ def test_create_intersect_payload(
         "seq2/car_temp",
     ]
     assert [t.clustering_dt_ns for t in intersect_payload.topics] == [0, 0, 0]
-    assert [json.loads(t.ontology) for t in intersect_payload.topics] == [
-        {
-            f"{IMU.ontology_tag()}.acceleration.x": {"$gt": 5.0},
-            f"{IMU.ontology_tag()}.acceleration.y": {"$eq": 20.0},
-        },
-        {
-            f"{Pressure.ontology_tag()}.value": {"$between": [1.0, 5.0]},
-        },
-        {
-            f"{Temperature.ontology_tag()}.value": {"$lt": 3.0},
-        },
+    assert [t.ontology for t in intersect_payload.topics] == [
+        IMU_ONTOLOGY_FILTER,
+        PRESSURE_ONTOLOGY_FILTER,
+        TEMPERATURE_ONTOLOGY_FILTER,
     ]
 
     # Creating payload with clustering_map and clustering_dt_ns default overridden
@@ -206,17 +229,10 @@ def test_create_intersect_payload(
         50,
         300,  # not present in map and default overridden
     ]
-    assert [json.loads(t.ontology) for t in intersect_payload.topics] == [
-        {
-            f"{IMU.ontology_tag()}.acceleration.x": {"$gt": 5.0},
-            f"{IMU.ontology_tag()}.acceleration.y": {"$eq": 20.0},
-        },
-        {
-            f"{Pressure.ontology_tag()}.value": {"$between": [1.0, 5.0]},
-        },
-        {
-            f"{Temperature.ontology_tag()}.value": {"$lt": 3.0},
-        },
+    assert [t.ontology for t in intersect_payload.topics] == [
+        IMU_ONTOLOGY_FILTER,
+        PRESSURE_ONTOLOGY_FILTER,
+        TEMPERATURE_ONTOLOGY_FILTER,
     ]
 
 
@@ -240,4 +256,6 @@ def test_create_intersect_empty_payload(
         "seq1/empty",
     ]
     assert [t.clustering_dt_ns for t in intersect_payload.topics] == [0, 0, 0]
-    assert [json.loads(t.ontology) for t in intersect_payload.topics] == [{}, {}, {}]
+    assert [t.ontology for t in intersect_payload.topics] == [
+        query_pb2.OntologyFilter()
+    ] * 3

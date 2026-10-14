@@ -13,12 +13,12 @@
 //!     An [`Op`] defines *how* to compare data. It represents specific conditions like equality
 //!     (`Eq`), ranges (`Between`), set membership (`In`), or existence (`Ex`).
 //!
-//! -   _Expression_ ([`Expr`]): the single constraint.
-//!     An expression is formed by binding a specific identifier (a field name or [`OntologyField`])
+//! -   _Predicate_ ([`OntologyPredicate`]): the single constraint.
+//!     A predicate is formed by binding a specific identifier (a field name or [`OntologyField`])
 //!     to an [`Op`]. It asserts a rule for that specific field (e.g., *"temperature > 25.0"*).
 //!
 //! -   _Filter_: the composite query.
-//!     A [`Filter`] is a collection of expressions grouped by domain (Sequence, Topic, Ontology,
+//!     A [`Filter`] is a collection of predicates grouped by domain (Sequence, Topic, Ontology,
 //!     ...).
 //!     It represents the complete set of criteria required to match a specific resource.
 //!
@@ -410,12 +410,12 @@ impl std::fmt::Display for OntologyField {
 }
 
 /// A single constraint.
-/// An expression is formed by binding a specific identifier (a field name or [`OntologyField`])
+/// A predicate is formed by binding a specific identifier (a field name or [`OntologyField`])
 /// to an [`Op`]. It asserts a rule for that specific field (e.g., *"temperature > 25.0"*).
 #[derive(Debug, Clone)]
-pub struct OntologyExpr<T>(OntologyField, Op<T>);
+pub struct OntologyPredicate<T>(OntologyField, Op<T>);
 
-impl<T> OntologyExpr<T> {
+impl<T> OntologyPredicate<T> {
     pub fn ontology_field(&self) -> &OntologyField {
         &self.0
     }
@@ -429,36 +429,36 @@ impl<T> OntologyExpr<T> {
     }
 }
 
-impl<T> From<(OntologyField, Op<T>)> for OntologyExpr<T> {
+impl<T> From<(OntologyField, Op<T>)> for OntologyPredicate<T> {
     fn from(value: (OntologyField, Op<T>)) -> Self {
         Self(value.0, value.1)
     }
 }
 
-/// An expression group is defined as a series of ontology fields
+/// A predicate group is defined as a series of ontology fields
 /// with associated operations.
 #[derive(Debug, Clone)]
-pub struct OntologyExprGroup<T> {
-    pub group: Vec<OntologyExpr<T>>,
+pub struct OntologyPredicateGroup<T> {
+    pub group: Vec<OntologyPredicate<T>>,
 }
 
-impl<T> OntologyExprGroup<T> {
-    pub fn new(group: Vec<OntologyExpr<T>>) -> Self {
+impl<T> OntologyPredicateGroup<T> {
+    pub fn new(group: Vec<OntologyPredicate<T>>) -> Self {
         Self { group }
     }
 
-    /// Exports filter data as several expression groupss grouped by ontology tag
+    /// Exports filter data as several predicate groups grouped by ontology tag
     /// So if the
-    pub fn split_by_ontology_tag(self) -> Vec<OntologyExprGroup<T>> {
-        let mut map: HashMap<String, OntologyExprGroup<T>> = HashMap::new();
-        for expr in self.group {
-            let tag = expr.ontology_field().ontology_tag();
+    pub fn split_by_ontology_tag(self) -> Vec<OntologyPredicateGroup<T>> {
+        let mut map: HashMap<String, OntologyPredicateGroup<T>> = HashMap::new();
+        for predicate in self.group {
+            let tag = predicate.ontology_field().ontology_tag();
             match map.entry(tag.to_owned()) {
                 Entry::Vacant(vacant) => {
-                    vacant.insert(Self::new(vec![expr]));
+                    vacant.insert(Self::new(vec![predicate]));
                 }
                 Entry::Occupied(mut occupied) => {
-                    occupied.get_mut().group.push(expr);
+                    occupied.get_mut().group.push(predicate);
                 }
             }
         }
@@ -467,59 +467,58 @@ impl<T> OntologyExprGroup<T> {
     }
 }
 
-impl<T> Default for OntologyExprGroup<T> {
+impl<T> Default for OntologyPredicateGroup<T> {
     fn default() -> Self {
         Self { group: Vec::new() }
     }
 }
 
-impl<T> IntoIterator for OntologyExprGroup<T> {
-    type Item = OntologyExpr<T>;
-    type IntoIter = std::vec::IntoIter<OntologyExpr<T>>;
+impl<T> IntoIterator for OntologyPredicateGroup<T> {
+    type Item = OntologyPredicate<T>;
+    type IntoIter = std::vec::IntoIter<OntologyPredicate<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.group.into_iter()
     }
 }
 
-/// A container for dynamic user-defined expressions mapping to ontology data models.
+/// A container for dynamic user-defined predicates mapping to ontology data models.
 #[derive(Debug, Clone)]
 pub struct OntologyFilter {
-    ontology: HashMap<OntologyField, Op<Value>>,
+    ontology: Vec<OntologyPredicate<Value>>,
 }
 
 impl OntologyFilter {
     /// Creates a new Metadata instance from a [`HashMap`].
-    pub fn new(v: HashMap<OntologyField, Op<Value>>) -> Self {
+    pub fn new(v: Vec<OntologyPredicate<Value>>) -> Self {
         Self { ontology: v }
     }
 
     /// Creates an empty Metadata instance.
     pub fn empty() -> Self {
         Self {
-            ontology: HashMap::new(),
+            ontology: Vec::new(),
         }
-    }
-
-    /// Retrieves the operation associated with a specific metadata field.
-    pub fn get_op(&self, field: &OntologyField) -> Option<&Op<Value>> {
-        self.ontology.get(field)
     }
 
     /// Returns an iterator over the ontology tags.
     pub fn ontology_tags(&self) -> impl Iterator<Item = &str> + '_ {
-        self.ontology.keys().map(|f| f.ontology_tag())
+        self.ontology
+            .iter()
+            .map(|e| e.ontology_field().ontology_tag())
     }
 
-    /// Exports filter data as a unique expression group
-    pub fn into_expr_group(self) -> OntologyExprGroup<Value> {
-        OntologyExprGroup {
-            group: self
-                .ontology
-                .into_iter()
-                .map(|(o, v)| OntologyExpr(o, v))
-                .collect(),
-        }
+    /// Exports filter data as a unique predicate group
+    pub fn into_ontology_predicate_group(self) -> OntologyPredicateGroup<Value> {
+        OntologyPredicateGroup::new(self.ontology)
+    }
+
+    pub fn len(&self) -> usize {
+        self.ontology.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.ontology.is_empty()
     }
 }
 
@@ -656,8 +655,8 @@ mod tests {
     }
 
     #[test]
-    fn expr_grp_split() {
-        let grp = OntologyExprGroup {
+    fn predicate_grp_split() {
+        let grp = OntologyPredicateGroup {
             group: vec![
                 (
                     OntologyField::try_new("image.width".into()).unwrap(),
