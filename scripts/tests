@@ -26,6 +26,20 @@ MOSAICOD_PATH="${PROJECT_DIR}/${MOSAICOD_DIR}"
 PYTHON_SDK_PATH="${PROJECT_DIR}/${PYTHON_SDK_DIR}"
 DOCKER_PATH="${PROJECT_DIR}/${DOCKER_DIR}"
 
+# Supports both the modern `docker compose` plugin and legacy
+# `docker-compose`.
+docker_compose() {
+    if docker compose version >/dev/null 2>&1; then
+        docker compose "$@"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        docker-compose "$@"
+    else
+        echo "${RED}${BOLD}Error: Docker Compose is not installed.${RESET}" >&2
+        echo "Install Docker Compose or Docker Desktop/Colima." >&2
+        return 1
+    fi
+}
+
 # Colors (with fallback for non-interactive terminals)
 setup_colors() {
     if [ -t 1 ]; then
@@ -68,7 +82,7 @@ cleanup() {
 
     if [ "$DOCKER_STARTED" = true ]; then
         cd "${DOCKER_PATH}"
-        eval "docker compose down -v $REDIRECT_TO_NULL || true"
+        eval "docker_compose down -v $REDIRECT_TO_NULL || true"
     fi
 
     MOSAICOD_PID=""
@@ -124,7 +138,7 @@ start_docker() {
         DOCKER_STARTED=true
         title "docker" "." "${BLUE}"
         cd "${DOCKER_PATH}"
-        eval "docker compose up -d --wait $REDIRECT_TO_NULL"
+        eval "docker_compose up -d --wait $REDIRECT_TO_NULL"
         echo "Started ${BOLD}docker/testing${RESET} compose file"
     fi
 }
