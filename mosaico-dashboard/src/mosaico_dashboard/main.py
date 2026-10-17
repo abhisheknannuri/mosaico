@@ -31,6 +31,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health.router)
     app.include_router(home.router)
+
     return app
 
 
