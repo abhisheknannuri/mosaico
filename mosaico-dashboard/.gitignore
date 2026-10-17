@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 dist/
+
+# decision files (kept locally)
+/docs/decisions/

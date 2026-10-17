@@ -131,38 +131,39 @@ hooks were already done in D-01.)
 
 ---
 
-### D-05 · App factory, `/healthz`, OpenAPI conventions · `todo`
+### D-05 · App factory, `/healthz`, OpenAPI conventions · `done`
 **Scope**
-- `create_app(settings) -> FastAPI` with lifespan hook (empty for now).
-- OpenAPI metadata: title "Mosaico Dashboard", version from package, description.
-  Conventions (write them into `architecture.md`):
-  - **JSON API** lives under `/api/v1/...`, every route has a Pydantic `response_model`, tags,
-    and summaries → appears in `/docs` (Swagger) and `/openapi.json`.
-  - **HTML routes** (pages/fragments for htmx) use `include_in_schema=False`. They're UI, not API.
-  - Errors in JSON API use one shape (`{"detail": ..., "code": ...}`).
-- `GET /healthz` → `{"status": "ok"}` (process liveness, no external calls).
-- Run command: `poetry run uvicorn mosaico_dashboard.main:app --reload`.
+- [x] `create_app(settings) -> FastAPI` in `main.py`: sets up logging, OpenAPI metadata (title,
+  version from the package, description), routers; `app = create_app(get_settings())`.
+- [x] `/healthz` in `web/health.py` with a `Health` response model, tag `ops`.
+- [x] `operationId` = function name.
+- [x] HTTP conventions written in `architecture.md` §4 (ADR-0008).
+- Deferred: lifespan hook (D-11, when the gateway connects), custom error shape (D-17).
 
 **Acceptance criteria**
-- [ ] Test client: `/healthz` 200; `/openapi.json` contains `/healthz`.
-- [ ] Opening `/docs` in the browser shows the API.
+- [x] Tests: `/healthz` 200; OpenAPI title/version; `/healthz` documented with operationId,
+  tag, summary; `/docs` served. 11 tests pass.
+- [x] Live: `/healthz`, `/openapi.json`, `/docs` (200).
 
 ---
 
-### D-06 · Base template, static files, vendored htmx, page-or-fragment helper · `todo`
+### D-06 · Base template, static files, vendored htmx, page-or-fragment helper · `done`
 **Scope**
-- Vendor **htmx 2.x** (exact pinned version, file in `static/vendor/`, version noted in README;
-  no CDN so it works offline on robot-site networks).
-- `templates/base.html`: layout, nav (Recordings · Storage · Ingestion), `hx-boost="true"` on nav,
-  CSS variables + dark mode, a slot for a "daemon status" indicator.
-- `web/htmx.py`: `is_htmx(request)` (checks `HX-Request`, ignores `HX-History-Restore-Request`)
-  and `render(request, page_template, partial_template, context)`.
-- Home page `/` with a placeholder card.
+- [x] htmx **2.0.11** (latest stable; 4.0.0 is pre-release) in
+  `static/vendor/htmx-2.0.11.min.js`, version in the file name, no CDN.
+- [x] `templates/base.html`: layout, top bar, nav with `hx-boost="true"` (only "Overview" until
+  other pages exist); `static/css/app.css` with CSS variables and dark mode.
+- [x] `web/rendering.py`: `templates`, `wants_fragment(request)` (HX-Request, not boosted, not
+  history restore), `render(request, page, fragment, context)` with `Vary: HX-Request`.
+- [x] Home page `/` (`web/pages/home.py`): status card with a Refresh form that htmx swaps in
+  place and that works as a normal GET without JavaScript.
+- Daemon status indicator slot: added in D-12 when there's a status to show.
 
 **Acceptance criteria**
-- [ ] Test: `GET /` returns full HTML (contains `<html`); same request with `HX-Request: true`
-      returns only the fragment.
-- [ ] Page works with JavaScript disabled.
+- [x] Tests: full page; fragment for `HX-Request`; full page when boosted or history restore;
+  `Vary` header; static files served; `/` not in OpenAPI. 18 tests pass.
+- [x] Templates and static files are included in the built wheel (Docker installs the wheel).
+- [x] Works without JavaScript: the Refresh form is a plain `GET /`.
 
 ---
 
@@ -220,7 +221,7 @@ hooks were already done in D-01.)
   `GatewayUnavailable` / `RecordingNotFound`.
 - Connection created in the app lifespan, closed on shutdown.
 - **Spike inside this task:** is one `MosaicoClient` safe across threads? Measure time to fetch
-  metadata for all local sequences. **Write ADR-0008** with the result (shared client vs pool).
+  metadata for all local sequences. **Write an ADR** with the result (shared client vs pool).
 - **AC:** integration test (marked `integration`, skipped if no daemon) lists the real local
   sequences.
 

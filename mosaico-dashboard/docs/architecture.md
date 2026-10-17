@@ -72,7 +72,7 @@ mosaico-dashboard/
 │   ├── dev_setup.sh          # venv + editable SDK
 │   └── check.sh              # format, lint, import rules, types, tests
 ├── src/mosaico_dashboard/
-│   ├── main.py               # FastAPI app (app factory in D-05)
+│   ├── main.py               # create_app(settings) and the ASGI `app`
 │   ├── __main__.py           # run command (D-04)
 │   ├── settings.py           # configuration from env (D-04)
 │   ├── logging_config.py     # logging setup (D-04)
@@ -80,10 +80,17 @@ mosaico-dashboard/
 │   ├── gateway/              # access to mosaicod (the only SDK user)
 │   ├── services/             # use cases
 │   └── web/
+│       ├── health.py         # GET /healthz
+│       ├── rendering.py      # Jinja2 setup, render(): full page or htmx fragment
 │       ├── pages/            # HTML routes (pages + htmx fragments)
 │       ├── api/              # JSON routes under /api/v1
-│       ├── templates/        # Jinja2 templates (D-06)
-│       └── static/           # CSS, JS, vendored htmx (D-06)
+│       ├── templates/
+│       │   ├── base.html     # layout: head, top bar, nav
+│       │   ├── pages/        # full pages, extend base.html
+│       │   └── partials/     # fragments, included by pages and returned to htmx
+│       └── static/
+│           ├── css/app.css   # styles, CSS variables, dark mode
+│           └── vendor/       # htmx-2.0.11.min.js (pinned, no CDN)
 ├── tests/
 │   ├── unit/                 # domain + services, no HTTP, no daemon
 │   ├── web/                  # routes through TestClient
@@ -156,7 +163,41 @@ Contracts (all must be `KEPT`):
 2. **Only the gateway imports the Mosaico SDK.**
 3. **Domain and services are framework-agnostic:** no FastAPI/Starlette.
 
-## 4. Request flow (example: recordings page)
+## 4. HTTP conventions
+
+| Kind | Where | URL | In OpenAPI (`/docs`) | Returns |
+|---|---|---|---|---|
+| Ops | `web/health.py` | `/healthz` (later `/readyz`) | Yes, tag `ops` | JSON |
+| JSON API | `web/api/` | `/api/v1/...` | Yes, tag per feature | JSON, Pydantic model as return type |
+| HTML pages | `web/pages/` | `/`, `/recordings`, ... | No (`include_in_schema=False`) | Full page, or fragment for htmx |
+
+- Every documented route has a `summary` and a tag; its return type annotation is its response
+  model.
+- `operationId` is the Python function name (e.g. `healthz`), so names stay readable in
+  generated clients.
+- Errors use FastAPI's standard `{"detail": ...}` until a task needs more.
+- Interactive docs: `/docs` (Swagger UI) and `/redoc`; schema at `/openapi.json`.
+
+### Pages and htmx fragments
+
+Each page is a template in `pages/` that extends `base.html` and **includes** one or more
+templates from `partials/`. A route calls `render(request, page, fragment, context)`:
+
+```mermaid
+flowchart LR
+    REQ["GET /"] --> Q{"htmx swap request?<br/>HX-Request, not boosted,<br/>not history restore"}
+    Q -->|yes| FRAG["partials/home_status.html<br/>(fragment only)"]
+    Q -->|no| PAGE["pages/home.html<br/>= base.html + partial"]
+```
+
+- Same URL, same handler, same context for both: a fragment is exactly the part of the page
+  it replaces.
+- Boosted links (`hx-boost` on the nav) and history restores get the full page.
+- Responses carry `Vary: HX-Request` so caches keep the two versions apart.
+- Without JavaScript, forms and links are normal GET requests and get full pages.
+- Static files use plain `/static/...` paths (no absolute URLs), so they work behind a proxy.
+
+## 5. Request flow (example: recordings page)
 
 ```mermaid
 sequenceDiagram

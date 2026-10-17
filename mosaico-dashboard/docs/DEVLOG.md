@@ -10,3 +10,5 @@ One line per finished task. Newest at the bottom.
 | 2026-10-17 | D-03 | Layer packages (`domain`, `gateway`, `services`, `web/pages`, `web/api`), `import-linter` contracts in `check.sh`, `docs/architecture.md` with diagrams, ADR-0006. |
 | 2026-10-17 | D-04 | Settings (`DASHBOARD_*`, `.env`), console logging in SDK format with optional Rich, `poetry run mosaico-dashboard` (also Docker CMD), ADR-0007. Gotcha: with reload, uvicorn runs the app in a child process, so logging is set up in both `run()` and `main.py`. |
 | 2026-10-17 | D-04 | Renamed `DASHBOARD_LOG_PRETTY` → `DASHBOARD_LOG_FORMAT=plain|pretty` (mirrors `MOSAICOD_LOG_FORMAT`); invalid values rejected at startup. |
+| 2026-10-17 | D-05 | `create_app(settings)`, `/healthz` router with response model, readable operationIds, HTTP conventions in `architecture.md`, ADR-0008. Tests build their own app via a `client` fixture. |
+| 2026-10-17 | D-06 | Base template + CSS (dark mode), htmx 2.0.11 vendored, `render()` page-or-fragment helper, home page with htmx Refresh, ADR-0009. Gotcha: `hx-boost` requests also send `HX-Request` but need the full page; `url_for` gave absolute URLs → plain `/static/` paths. |

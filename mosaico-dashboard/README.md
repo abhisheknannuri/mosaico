@@ -64,6 +64,12 @@ From the repository root:
 docker compose -f docker/devel/dashboard-compose.yml --profile production up -d --build
 ```
 
+## Frontend
+
+Server-rendered HTML (Jinja2) with [htmx](https://htmx.org) **2.0.11**, vendored in
+`src/mosaico_dashboard/web/static/vendor/` (no CDN). To upgrade, replace the file and update
+the `<script>` tag in `templates/base.html`.
+
 ## Code standards
 
 Same as `mosaico-sdk-py`: ruff for linting and formatting, plus pyright for type checking and
