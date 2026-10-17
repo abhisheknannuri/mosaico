@@ -38,10 +38,19 @@ From the repository root:
 docker compose -f docker/devel/dashboard-compose.yml --profile development up -d
 ```
 
-### 5. Run the dashboard
+### 5. Configure
 
 ```bash
-poetry run uvicorn mosaico_dashboard.main:app --reload
+cp .env.example .env
+```
+
+Settings are `DASHBOARD_*` variables, read from the environment or `.env`. The example enables
+auto-reload and coloured logs for development.
+
+### 6. Run the dashboard
+
+```bash
+poetry run mosaico-dashboard
 ```
 
 - Health check: <http://127.0.0.1:8000/healthz>

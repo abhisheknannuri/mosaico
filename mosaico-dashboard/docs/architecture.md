@@ -104,6 +104,10 @@ Folders are created by the task that first puts code in them.
 | `web/api/` | Routes returning JSON with Pydantic response models (OpenAPI) | everything below, FastAPI | SDK |
 | `main.py` | Creates the app, wires routers and dependencies | everything | |
 
+Settings and logging live at the package root (ADR-0007): `settings.py` reads `DASHBOARD_*`
+variables from the environment or `.env`; `logging_config.py` sends dashboard, uvicorn and SDK
+logs to one console handler.
+
 ## 3. Import graph
 
 Arrows mean "imports". Rules are enforced by `import-linter` (`[tool.importlinter]` in

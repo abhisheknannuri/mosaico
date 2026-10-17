@@ -111,23 +111,23 @@ hooks were already done in D-01.)
 
 ---
 
-### D-04 · Settings, logging & run command · `todo`
+### D-04 · Settings, logging & run command · `done`
 **Scope**
-- `settings.py`: `pydantic-settings` `Settings` with env prefix `DASHBOARD_`:
-  `MOSAICO_HOST` (default `localhost`), `MOSAICO_PORT` (6726), `MOSAICO_API_KEY` (optional,
-  `SecretStr`), `MOSAICO_TLS` (bool), `MOSAICO_TLS_CERT_PATH`, `LOG_LEVEL`, `ENV` (`dev|prod`).
-  `HOST` (`127.0.0.1`), `PORT` (8000), `RELOAD` (bool, dev only).
-  Later tasks add `DATABASE_URL` etc.
-- Run command: `src/mosaico_dashboard/__main__.py` with `run()` calling `uvicorn.run(...)` with
-  host/port/reload from settings; registered in `[tool.poetry.scripts]` as `mosaico-dashboard`.
-  Dev: `poetry run mosaico-dashboard`. Dockerfile `CMD` uses the same command.
-- `.env.example` documenting every variable; `.env` git-ignored.
-- `logging_config.py`: stdlib logging configured once; JSON format when `ENV=prod`, readable in dev.
-  Never log `SecretStr` values.
+- [x] `settings.py`: `Settings` (`pydantic-settings`, prefix `DASHBOARD_`, `.env`): `HOST`,
+  `PORT`, `RELOAD`, `LOG_LEVEL`, `LOG_FORMAT` (`plain`|`pretty`), `MOSAICO_HOST`, `MOSAICO_PORT`,
+  `MOSAICO_API_KEY` (`SecretStr`), `MOSAICO_TLS`, `MOSAICO_TLS_CERT_PATH`; cached `get_settings()`.
+- [x] `logging_config.py`: root logger, console only, SDK's plain format or Rich (`LOG_FORMAT`);
+  uvicorn and SDK logs use the same handler (ADR-0007).
+- [x] `__main__.py` `run()` registered as `mosaico-dashboard`; Docker `CMD ["mosaico-dashboard"]`,
+  compose sets `DASHBOARD_HOST=0.0.0.0`.
+- [x] `.env.example` (dev values: reload, pretty logs); README "Configure" + "Run" steps.
+- Dropped: `ENV` (dev/prod) and JSON logs; nothing needs them yet.
 
 **Acceptance criteria**
-- [ ] Unit test: defaults load; env vars override; API key is not visible in `repr(settings)`.
-- [ ] `poetry run mosaico-dashboard` starts the app on the configured host/port; README updated.
+- [x] Unit tests: defaults, env override, API key hidden in `repr`; logging handler (plain,
+  Rich, no duplicates, SDK logs propagate). 7 tests pass.
+- [x] `poetry run mosaico-dashboard` with `.env`: reload + Rich logs, "Uvicorn running on
+  http://127.0.0.1:8000" shown. With env overrides: plain logs, port 8010.
 
 ---
 
@@ -220,7 +220,7 @@ hooks were already done in D-01.)
   `GatewayUnavailable` / `RecordingNotFound`.
 - Connection created in the app lifespan, closed on shutdown.
 - **Spike inside this task:** is one `MosaicoClient` safe across threads? Measure time to fetch
-  metadata for all local sequences. **Write ADR-0007** with the result (shared client vs pool).
+  metadata for all local sequences. **Write ADR-0008** with the result (shared client vs pool).
 - **AC:** integration test (marked `integration`, skipped if no daemon) lists the real local
   sequences.
 

@@ -9,6 +9,9 @@ keywords = ["mosaicolabs", "mosaico", "dashboard", "fastapi", "htmx", "robotics"
 
 packages = [{ include = "mosaico_dashboard", from = "src" }]
 
+[tool.poetry.scripts]
+mosaico-dashboard = "mosaico_dashboard.__main__:run"
+
 # mosaicolabs (SDK) is installed separately: scripts/dev_setup.sh (dev), Dockerfile (prod).
 [tool.poetry.dependencies]
 python = ">=3.10,<4"
@@ -17,6 +20,7 @@ uvicorn = { version = ">=0.32.0,<1.0.0", extras = ["standard"] }
 jinja2 = "^3.1.4"
 pydantic = "^2.12.5"
 pydantic-settings = "^2.6.0"
+rich = ">=14.3.3,<16.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.4.2"
