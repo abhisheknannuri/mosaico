@@ -1,0 +1,71 @@
+name: Dashboard
+
+on:
+  push:
+    paths:
+      - ".github/workflows/dashboard-ci.yml"
+      - "docker/dockerfiles/Dockerfile.mosaico-dashboard*"
+      - "mosaico-dashboard/**"
+      - "mosaico-sdk-py/**"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/dashboard-ci.yml"
+      - "docker/dockerfiles/Dockerfile.mosaico-dashboard*"
+      - "mosaico-dashboard/**"
+      - "mosaico-sdk-py/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Format, lint, import rules, type check and tests (scripts/check.sh).
+  checks:
+    name: "Checks (Py ${{ matrix.python-version }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mosaico-dashboard
+    env:
+      PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v6.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: |
+          poetry env use "${{ matrix.python-version }}"
+          poetry install
+          poetry run pip install ../mosaico-sdk-py
+          poetry run pip check
+      - name: Run checks
+        run: bash ./scripts/check.sh
+
+  # Builds the production image and checks that the container starts.
+  docker:
+    name: "Docker image"
+    needs: [checks]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build image
+        run: docker build -f docker/dockerfiles/Dockerfile.mosaico-dashboard -t mosaico-dashboard:ci .
+      - name: Start container
+        run: docker run -d --name dashboard -p 8000:8000 -e DASHBOARD_HOST=0.0.0.0 mosaico-dashboard:ci
+      - name: Check /healthz
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8000/healthz && exit 0
+            sleep 1
+          done
+          docker logs dashboard
+          exit 1

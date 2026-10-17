@@ -184,14 +184,19 @@ hooks were already done in D-01.)
 
 ---
 
-### D-08 · CI workflow for the dashboard · `todo`
+### D-08 · CI workflow for the dashboard · `doing` (waiting for the first run on GitHub)
 **Scope**
-- `.github/workflows/dashboard-ci.yml` (**outside the folder**: repo-wide CI), modelled on
-  `py-ci.yml`: triggers on `mosaico-dashboard/**` and `mosaico-sdk-py/**` changes; jobs:
-  lint (ruff) → type check → tests on Python 3.10 and 3.13 → docker build.
+- [x] `.github/workflows/dashboard-ci.yml`, plain Python like `py-ci.yml` (no Docker for checks).
+  Triggers: push to any branch and PRs to `main` touching `mosaico-dashboard/**`,
+  `mosaico-sdk-py/**`, the dashboard Dockerfile or the workflow; manual run.
+- [x] Job `checks` (Python 3.10 and 3.13): `poetry install`, SDK non-editable from
+  `../mosaico-sdk-py`, `pip check`, `bash ./scripts/check.sh`.
+- [x] Job `docker` (after `checks`): build the production image, run it, `curl /healthz`.
 
 **Acceptance criteria**
-- [ ] Workflow passes on a push to the fork.
+- [x] Simulated locally: checks pass on Python 3.10 with a non-editable SDK; Docker job steps
+      pass (container starts with `CMD ["mosaico-dashboard"]`, `/healthz` 200).
+- [ ] Workflow passes on a push to the fork (enable Actions on the fork first).
 
 ---
 
