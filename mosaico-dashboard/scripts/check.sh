@@ -8,6 +8,9 @@ poetry run ruff format --check .
 echo ">> ruff check"
 poetry run ruff check .
 
+echo ">> import rules (lint-imports)"
+poetry run lint-imports
+
 echo ">> pyright"
 poetry run pyright
 

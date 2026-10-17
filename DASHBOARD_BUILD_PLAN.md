@@ -433,6 +433,9 @@ Key principles:
 
 ### 4.1 Folder layout (`mosaico-dashboard/` inside the monorepo fork, see §0.6)
 
+> Superseded by `mosaico-dashboard/docs/architecture.md` (current structure) and ADR-0006.
+> The tree below is the original sketch.
+
 ```text
 mosaico-dashboard/
 ├── pyproject.toml              # Poetry (SDK added via `pip install -e ../mosaico-sdk-py`, ADR-0002); ruff, pytest, pyright

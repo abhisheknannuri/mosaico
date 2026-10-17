@@ -95,36 +95,19 @@ hooks were already done in D-01.)
 
 ---
 
-### D-03 · Folder structure & layering rules · `todo`
+### D-03 · Folder structure & layering rules · `done`
 **Why:** agree on where code goes and which layer may import which, before writing features.
 
 **Scope**
-- Create the package skeleton (empty modules, each with a one-line module docstring):
-  ```text
-  src/mosaico_dashboard/
-    __init__.py
-    main.py            # app factory (filled in D-05)
-    settings.py        # (D-04)
-    logging.py         # (D-04)
-    domain/            # pure Python, no FastAPI/SDK imports
-    gateway/           # the ONLY place that imports mosaicolabs
-    services/          # use-cases; depend on gateway Protocol + repositories
-    db/                # (Sprint 2)
-    jobs/              # (Sprint 5)
-    web/
-      routes/          # HTML routes (htmx) and /api/v1 JSON routes
-      templates/{pages,partials}/
-      static/{css,js,vendor}/
-  tests/{unit,web,integration}/
-  ```
-- `docs/architecture.md`: the layer diagram and the **import rules**:
-  `web → services → (gateway | db) → domain`; `domain` imports nothing internal;
-  only `gateway/` imports `mosaicolabs`.
-- Optional but cheap: enforce the rule with a test that greps imports.
+- [x] Layer packages with one-line docstrings: `domain/`, `gateway/`, `services/`,
+  `web/pages/`, `web/api/` (ADR-0006). Other folders are created by the task that needs them.
+- [x] Test moved to `tests/web/test_health.py`.
+- [x] `import-linter` contracts in `pyproject.toml`, run by `scripts/check.sh`.
+- [x] `docs/architecture.md`: system context, folder structure, import graph, request flow.
 
 **Acceptance criteria**
-- [ ] Tree exists; `pytest` still green.
-- [ ] `architecture.md` written; import-rule test passes.
+- [x] `bash ./scripts/check.sh` passes; 3 import contracts kept.
+- [x] A planted `domain → mosaicolabs` import breaks the check.
 
 ---
 
@@ -139,7 +122,7 @@ hooks were already done in D-01.)
   host/port/reload from settings; registered in `[tool.poetry.scripts]` as `mosaico-dashboard`.
   Dev: `poetry run mosaico-dashboard`. Dockerfile `CMD` uses the same command.
 - `.env.example` documenting every variable; `.env` git-ignored.
-- `logging.py`: stdlib logging configured once; JSON format when `ENV=prod`, readable in dev.
+- `logging_config.py`: stdlib logging configured once; JSON format when `ENV=prod`, readable in dev.
   Never log `SecretStr` values.
 
 **Acceptance criteria**
@@ -237,7 +220,7 @@ hooks were already done in D-01.)
   `GatewayUnavailable` / `RecordingNotFound`.
 - Connection created in the app lifespan, closed on shutdown.
 - **Spike inside this task:** is one `MosaicoClient` safe across threads? Measure time to fetch
-  metadata for all local sequences. **Write ADR-0006** with the result (shared client vs pool).
+  metadata for all local sequences. **Write ADR-0007** with the result (shared client vs pool).
 - **AC:** integration test (marked `integration`, skipped if no daemon) lists the real local
   sequences.
 

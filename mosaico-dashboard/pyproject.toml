@@ -23,6 +23,7 @@ pytest = ">=8.4.2"
 ruff = ">=0.15.8,<0.17.0"
 pyright = { version = ">=1.1.390", extras = ["nodejs"] }
 httpx2 = "^2.13.1"
+import-linter = "^2.15"
 
 [tool.ruff]
 line-length = 88
@@ -47,6 +48,36 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "mosaico_dashboard"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers: web > services > gateway > domain"
+type = "layers"
+layers = [
+    "mosaico_dashboard.web",
+    "mosaico_dashboard.services",
+    "mosaico_dashboard.gateway",
+    "mosaico_dashboard.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only the gateway imports the Mosaico SDK"
+type = "forbidden"
+source_modules = [
+    "mosaico_dashboard.domain",
+    "mosaico_dashboard.services",
+    "mosaico_dashboard.web",
+]
+forbidden_modules = ["mosaicolabs"]
+
+[[tool.importlinter.contracts]]
+name = "Domain and services are framework-agnostic"
+type = "forbidden"
+source_modules = ["mosaico_dashboard.domain", "mosaico_dashboard.services"]
+forbidden_modules = ["fastapi", "starlette"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
