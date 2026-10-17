@@ -152,7 +152,8 @@ hooks were already done in D-01.)
 - [x] htmx **2.0.11** (latest stable; 4.0.0 is pre-release) in
   `static/vendor/htmx-2.0.11.min.js`, version in the file name, no CDN.
 - [x] `templates/base.html`: layout, top bar, nav with `hx-boost="true"` (only "Overview" until
-  other pages exist); `static/css/app.css` with CSS variables and dark mode.
+  other pages exist); `static/css/app.css` with Mosaico brand colours (dark, as the docs site); logo and favicon in
+  `static/img/`.
 - [x] `web/rendering.py`: `templates`, `wants_fragment(request)` (HX-Request, not boosted, not
   history restore), `render(request, page, fragment, context)` with `Vary: HX-Request`.
 - [x] Home page `/` (`web/pages/home.py`): status card with a Refresh form that htmx swaps in
@@ -184,7 +185,7 @@ hooks were already done in D-01.)
 
 ---
 
-### D-08 · CI workflow for the dashboard · `doing` (waiting for the first run on GitHub)
+### D-08 · CI workflow for the dashboard · `done`
 **Scope**
 - [x] `.github/workflows/dashboard-ci.yml`, plain Python like `py-ci.yml` (no Docker for checks).
   Triggers: push to any branch and PRs to `main` touching `mosaico-dashboard/**`,
@@ -196,7 +197,7 @@ hooks were already done in D-01.)
 **Acceptance criteria**
 - [x] Simulated locally: checks pass on Python 3.10 with a non-editable SDK; Docker job steps
       pass (container starts with `CMD ["mosaico-dashboard"]`, `/healthz` 200).
-- [ ] Workflow passes on a push to the fork (enable Actions on the fork first).
+- [x] Workflow passes on a push to the fork.
 
 ---
 

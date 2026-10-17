@@ -89,7 +89,8 @@ mosaico-dashboard/
 │       │   ├── pages/        # full pages, extend base.html
 │       │   └── partials/     # fragments, included by pages and returned to htmx
 │       └── static/
-│           ├── css/app.css   # styles, CSS variables, dark mode
+│           ├── css/app.css   # styles, Mosaico brand colours (from docs/py extra.css)
+│           ├── img/          # Mosaico logo, favicon (copied from logo/ and docs/py)
 │           └── vendor/       # htmx-2.0.11.min.js (pinned, no CDN)
 ├── tests/
 │   ├── unit/                 # domain + services, no HTTP, no daemon

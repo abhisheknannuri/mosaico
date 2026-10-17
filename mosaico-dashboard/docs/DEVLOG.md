@@ -13,3 +13,6 @@ One line per finished task. Newest at the bottom.
 | 2026-10-17 | D-05 | `create_app(settings)`, `/healthz` router with response model, readable operationIds, HTTP conventions in `architecture.md`, ADR-0008. Tests build their own app via a `client` fixture. |
 | 2026-10-17 | D-06 | Base template + CSS (dark mode), htmx 2.0.11 vendored, `render()` page-or-fragment helper, home page with htmx Refresh, ADR-0009. Gotcha: `hx-boost` requests also send `HX-Request` but need the full page; `url_for` gave absolute URLs → plain `/static/` paths. |
 | 2026-10-17 | D-08 | `dashboard-ci.yml`: `check.sh` on Py 3.10/3.13 (non-editable SDK) + Docker build and `/healthz` smoke test. Simulated locally: 3.10 passes; container runs with the new `CMD`. Waiting for the first GitHub run. |
+| 2026-10-17 | D-08 | First GitHub run green. Pre-commit ruff hook verified: it reformats and stops the commit. |
+| 2026-10-17 | D-06 | Restyled to match the docs site: Mosaico logo + favicon, brand colours from `docs/py` `extra.css`, gradient nav bar, dark only; simpler HTML/CSS. |
+| 2026-10-17 | D-06 | Layout pass: logo 30px in a 64px header with divider + muted label, thinner 40px gradient nav, type scale (15px base), content full width aligned with header, `color-scheme: dark`, card title "Status". Checked with headless Chrome screenshots. |
