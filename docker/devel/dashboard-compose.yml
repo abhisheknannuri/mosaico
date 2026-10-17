@@ -1,0 +1,105 @@
+# Mosaico stack for dashboard development. Run from the repository root.
+#
+# Profiles:
+#   development: Postgres + mosaicod. The dashboard runs from its Poetry venv.
+#   production:  development + the dashboard container.
+#
+#   docker compose -f docker/devel/dashboard-compose.yml --profile development up -d
+#   docker compose -f docker/devel/dashboard-compose.yml --profile production up -d --build
+name: "mosaico"
+
+x-mosaicod-common: &mosaicod-common
+  image: mosaicod:local
+  build:
+    context: ../..
+    dockerfile: docker/dockerfiles/Dockerfile.mosaicod
+  profiles: ["development", "production"]
+  networks:
+    - mosaico
+  environment:
+    MOSAICOD_DB_URL: postgresql://db:5432/mosaico
+    MOSAICOD_DB_USER: postgres
+    MOSAICOD_DB_PASSWORD: password
+    MOSAICOD_STORE_ENDPOINT: file:///
+    MOSAICOD_STORE_BUCKET: data
+  volumes:
+    - ../../mosaico-data:/data
+  depends_on:
+    database:
+      condition: service_healthy
+
+services:
+
+  database:
+    image: postgres:18
+    container_name: postgres
+    profiles: ["development", "production"]
+    hostname: db
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mosaico
+    networks:
+      - mosaico
+    volumes:
+      - pg-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Arrow Flight API server.
+  mosaicod-server:
+    <<: *mosaicod-common
+    container_name: mosaicod
+    command: |
+      server --host 0.0.0.0 --port 6726 --log-level info
+    ports:
+      - "127.0.0.1:6726:6726"
+
+  # Deletes obsolete files from the store (hourly).
+  mosaicod-cleanup:
+    <<: *mosaicod-common
+    container_name: mosaicod-cleanup
+    command: |
+      cleanup --time-interval 3600 --retention-duration 86400
+
+  # Compacts small chunks into larger ones (daily).
+  mosaicod-store-optimizer:
+    <<: *mosaicod-common
+    container_name: mosaicod-store-optimizer
+    command: |
+      store-optimizer --time-interval 86400
+
+  # Dashboard: API, HTML pages and static files.
+  dashboard:
+    image: mosaico-dashboard:local
+    build:
+      context: ../..
+      dockerfile: docker/dockerfiles/Dockerfile.mosaico-dashboard
+    container_name: mosaico-dashboard
+    profiles: ["production"]
+    environment:
+      DASHBOARD_MOSAICO_HOST: mosaicod-server
+      DASHBOARD_MOSAICO_PORT: "6726"
+      DASHBOARD_ENV: prod
+      # Keep container-to-container gRPC off any HTTP proxy.
+      NO_PROXY: mosaicod-server,localhost,127.0.0.1
+      no_proxy: mosaicod-server,localhost,127.0.0.1
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-8000}:8000"
+    networks:
+      - mosaico
+    depends_on:
+      mosaicod-server:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+
+networks:
+  mosaico:

@@ -133,5 +133,5 @@ def main():
 
 if __name__ == "__main__":
     # Setup simple logging for background SDK processes
-    log.basicConfig(level=log.INFO)
+    log.basicConfig(level=log.DEBUG)
     main()

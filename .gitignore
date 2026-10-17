@@ -16,3 +16,9 @@ env/
 .DS_Store
 Thumbs.db
 mosaico/.env
+
+# Env files
+.env
+
+# mosaico-data
+mosaico-data/

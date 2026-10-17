@@ -1,0 +1,132 @@
+name: "mosaico"
+
+# Shared configuration for every `mosaicod` service. The server and the
+# cleanup routine run the same image against the same database, object store
+# and network, so we declare that common setup once here and merge it into
+# each service below with `<<: *mosaicod-common`. This keeps the two services
+# in sync and avoids duplicating the environment variables.
+x-mosaicod-common: &mosaicod-common
+  # There are other available predefined tags that you can use.
+  image: mosaicod:local
+  networks:
+    - mosaico
+  # We configure the daemon to use the local filesystem for storage, mounted
+  # to the `/data` directory in the container. This persists data across
+  # container restarts and makes it easy to access from the host machine.
+  # Additional environment variables can be set here to configure the daemon's
+  # behavior.
+  environment:
+    MOSAICOD_DB_URL: postgresql://db:5432/mosaico
+    MOSAICOD_DB_USER: postgres
+    MOSAICOD_DB_PASSWORD: password
+    MOSAICOD_STORE_ENDPOINT: file:///
+    MOSAICOD_STORE_BUCKET: data
+  volumes:
+    # - mosaico-data:/data
+    - /home/qte9489/personal_abhi/MOSAICO/mosaico/mosaico-data:/data
+  depends_on:
+    database:
+      condition: service_healthy
+
+services:
+
+  database:
+    image: postgres:18
+    container_name: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    hostname: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password 
+      POSTGRES_DB: mosaico
+    networks:
+      - mosaico
+    volumes:
+      - pg-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U  postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: mosaico-adminer
+  #   environment:
+  #     ADMINER_DEFAULT_SERVER: db
+  #   ports:
+  #     - "127.0.0.1:8081:8080"
+  #   networks:
+  #     - mosaico
+  #   depends_on:
+  #     database:
+  #       condition: service_healthy
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
+    container_name: mosaico-cloudbeaver
+    environment:
+      CB_ADMIN_NAME: ${CB_ADMIN_NAME:-admin}
+      CB_ADMIN_PASSWORD: ${CB_ADMIN_PASSWORD:-password}
+      CB_SERVER_NAME: ${CB_SERVER_NAME:-Mosaico Local}
+      CB_SERVER_URL: ${CB_SERVER_URL:-http://127.0.0.1:8081}
+    ports:
+      - "127.0.0.1:8081:8978"
+    networks:
+      - mosaico
+    volumes:
+      - cloudbeaver-workspace:/opt/cloudbeaver/workspace
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+
+  # The daemon itself: serves the API and handles read/write requests.
+  # Inherits the shared image, environment, volumes, network and database
+  # dependency from `x-mosaicod-common`.
+  mosaicod-server:
+    <<: *mosaicod-common
+    container_name: mosaicod
+    # Here you can list any additional command line options for `mosaicod`.
+    command: |
+      server --host 0.0.0.0 --port 6726 --log-level info
+    ports:
+    # Remove `127.0.0.1` to expose this service to external networks.
+    # By default, this configuration restricts access to the local machine for security reasons.
+    # If you need to access the server from other machines on the network,
+    # you can modify the port mapping to allow external connections.
+      - "127.0.0.1:6726:6726"
+
+  # Background maintenance: periodically deletes obsolete files from the store.
+  # It shares the same image and configuration as the server (via
+  # `x-mosaicod-common`) but runs the `cleanup` subcommand instead of `server`.
+  mosaicod-cleanup:
+    <<: *mosaicod-common
+    container_name: mosaicod-cleanup
+    # `--time-interval` is the delay, in seconds, between two cleanup runs
+    #   (`0`, the default, runs a single cleanup and then exits; any value > 0
+    #   loops forever). Here we run the routine once per hour (3600s).
+    # `--retention-duration` is how long, in seconds, an obsolete file is kept
+    #   before being permanently deleted (default: 86400, i.e. one day).
+    command: |
+      cleanup --time-interval 3600 --retention-duration 86400
+
+  # Background maintenance: periodically rewrites small chunks into larger
+  # ones to keep query and retrieval performance up. It shares the same
+  # image and configuration as the server (via `x-mosaicod-common`) but runs
+  # the `store-optimizer` subcommand instead of `server`.
+  mosaicod-store-optimizer:
+    <<: *mosaicod-common
+    container_name: mosaicod-store-optimizer
+    # Here we run the routine once a day (86400s).
+    command: |
+      store-optimizer --time-interval 86400
+
+volumes:
+  pg-data:
+  # mosaico-data:
+  cloudbeaver-workspace:
+
+networks:
+  mosaico:

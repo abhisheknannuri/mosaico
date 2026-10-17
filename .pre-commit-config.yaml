@@ -14,3 +14,19 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      - id: ruff-check-dashboard
+        name: ruff check (mosaico-dashboard)
+        entry: bash -c "cd mosaico-dashboard && poetry run ruff check --fix ."
+        language: system
+        types: [python]
+        files: ^mosaico-dashboard/
+        pass_filenames: false
+
+      - id: ruff-format-dashboard
+        name: ruff format (mosaico-dashboard)
+        entry: bash -c "cd mosaico-dashboard && poetry run ruff format ."
+        language: system
+        types: [python]
+        files: ^mosaico-dashboard/
+        pass_filenames: false

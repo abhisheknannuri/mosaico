@@ -1,0 +1,13 @@
+*
+!mosaico-dashboard/pyproject.toml
+!mosaico-dashboard/poetry.lock
+!mosaico-dashboard/poetry.toml
+!mosaico-dashboard/README.md
+!mosaico-dashboard/src
+!mosaico-sdk-py/pyproject.toml
+!mosaico-sdk-py/README.md
+!mosaico-sdk-py/src
+
+**/__pycache__
+**/*.py[cod]
+**/.venv
