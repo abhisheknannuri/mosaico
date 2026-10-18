@@ -129,6 +129,14 @@ logs to one console handler.
   `data_start`/`data_end` (when the robot recorded, from the topics' timestamps).
 - `domain/format.py` turns sizes, times and durations into text for templates.
 
+### Gateway
+
+`gateway/base.py` defines `MosaicoGateway`, a Protocol (interface) of what the dashboard asks
+mosaicod for. Implementations: `FakeGateway` (in memory, tests) and the SDK gateway (D-11).
+It is **synchronous**: the SDK blocks, so services are plain functions and page routes are
+`def`; FastAPI runs `def` routes in its thread pool. Errors: `GatewayUnavailable`,
+`RecordingNotFound` (both `GatewayError`).
+
 ## 3. Import graph
 
 Arrows mean "imports". Rules are enforced by `import-linter` (`[tool.importlinter]` in

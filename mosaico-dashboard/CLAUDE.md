@@ -19,6 +19,7 @@
 - Lint/format: ruff, same config as `mosaico-sdk-py`. Hooks in repo-root `.pre-commit-config.yaml`.
 - Layers `web → services → gateway → domain`, enforced by import-linter (`docs/architecture.md`). Only `gateway/` imports `mosaicolabs`. Create folders only when a task needs them.
 - Keep `docs/architecture.md` up to date when structure changes.
+- Gateway, services and page routes are synchronous (`def`), because the SDK blocks (ADR-0012).
 - CI: `.github/workflows/dashboard-ci.yml` runs `scripts/check.sh` (Py 3.10, 3.13) + Docker build/healthz. Keep `check.sh` the single source of checks.
 - Dockerfile: `docker/dockerfiles/Dockerfile.mosaico-dashboard`. Compose: `docker/devel/dashboard-compose.yml` (profiles `development`, `production`).
 - Mosaico doesn't accept public PRs (`CONTRIBUTING.md`); upstream ideas start as GitHub Discussions.

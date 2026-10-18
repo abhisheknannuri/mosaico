@@ -17,3 +17,4 @@ One line per finished task. Newest at the bottom.
 | 2026-10-17 | D-06 | Restyled to match the docs site: Mosaico logo + favicon, brand colours from `docs/py` `extra.css`, gradient nav bar, dark only; simpler HTML/CSS. |
 | 2026-10-17 | D-06 | Layout pass: logo 30px in a 64px header with divider + muted label, thinner 40px gradient nav, type scale (15px base), content full width aligned with header, `color-scheme: dark`, card title "Status". Checked with headless Chrome screenshots. |
 | 2026-10-18 | D-09 | Domain models (`Recording`, `SensorStream`, `Upload`), `format.py`, `vocabulary.py`, 41 tests. Checked live data first: tags are class names (`IMU`, not `imu`), upload time (2026) ≠ recording time (2024), ROS msgtype available in topic metadata. |
+| 2026-10-18 | D-10 | Sync `MosaicoGateway` Protocol + gateway errors, `FakeGateway` with r2b-shaped sample data, 6 tests (47 total). ADR-0012: sync gateway + `def` routes instead of async + threads. |

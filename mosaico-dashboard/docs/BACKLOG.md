@@ -219,17 +219,19 @@ hooks were already done in D-01.)
 - [x] **AC:** unit tests incl. 0 bytes, huge sizes, `None` times, unknown tag, immutability,
   wrong types. 41 tests pass.
 
-### D-10 · Gateway Protocol + FakeGateway · `todo`
-- `gateway/base.py`: `MosaicoGateway` Protocol: `server_info()`, `list_recording_names()`,
-  `get_recording(name)`, `list_streams(name)`, `list_notices(name)`.
-- `gateway/fake.py`: in-memory implementation with fixture data (used by tests and for UI work
-  without a daemon).
-- **AC:** unit tests run entirely on the fake.
+### D-10 · Gateway Protocol + FakeGateway · `done`
+- [x] `gateway/base.py`: synchronous `MosaicoGateway` Protocol: `list_recordings()`,
+  `get_recording(name)`, `list_streams(recording)`; errors `GatewayError`,
+  `GatewayUnavailable`, `RecordingNotFound` (ADR-0012).
+- [x] `gateway/fake.py`: in-memory `FakeGateway`, sample data shaped like the local r2b
+  recordings (incl. a custom `EncoderTicks` stream); custom data via constructor.
+- Deferred: `server_info()` (D-12), notifications (D-16).
+- [x] **AC:** unit tests on the fake (list, get, not found, streams per recording). 47 tests pass.
 
 ### D-11 · SDK gateway implementation · `todo`
-- `gateway/sdk.py`: wraps `MosaicoClient`; maps SDK objects → domain models; runs blocking calls
-  in threads (`anyio.to_thread.run_sync`) behind a `CapacityLimiter`; timeouts; SDK exceptions →
-  `GatewayUnavailable` / `RecordingNotFound`.
+- `gateway/sdk.py`: synchronous `SdkGateway` wrapping `MosaicoClient` (ADR-0012); maps SDK
+  objects → domain models (ns → UTC `datetime`, `ros_type` from `_ros_.msgtype`); SDK
+  exceptions → `GatewayUnavailable` / `RecordingNotFound`.
 - Connection created in the app lifespan, closed on shutdown.
 - **Spike inside this task:** is one `MosaicoClient` safe across threads? Measure time to fetch
   metadata for all local sequences. **Write an ADR** with the result (shared client vs pool).
