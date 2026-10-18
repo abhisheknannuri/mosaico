@@ -14,6 +14,7 @@
       <img src="/static/img/mosaico-logo.svg" alt="Mosaico">
       <span>Dashboard</span>
     </a>
+    <div class="daemon-status" hx-get="/status" hx-trigger="load, every 30s"></div>
   </header>
   <nav hx-boost="true">
     <a href="/">Overview</a>

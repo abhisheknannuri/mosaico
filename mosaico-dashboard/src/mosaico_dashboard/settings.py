@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     mosaico_api_key: SecretStr | None = None
     mosaico_tls: bool = False
     mosaico_tls_cert_path: Path | None = None
+    mosaico_connect_timeout: int = 2
 
 
 @lru_cache

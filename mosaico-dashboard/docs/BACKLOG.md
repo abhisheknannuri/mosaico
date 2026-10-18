@@ -241,11 +241,19 @@ hooks were already done in D-01.)
   54 tests pass locally (5 integration).
 - Known limit: no per-call timeout in the SDK (ADR-0013).
 
-### D-12 · `/readyz` + daemon status indicator · `todo`
-- `/readyz`: 200 if `server_info()` answers within timeout, else 503.
-- Header indicator loaded via `hx-get="/status" hx-trigger="load, every 30s"`: "Connected to
-  mosaicod vX" / "mosaicod unreachable".
-- **AC:** web tests with the fake in both states.
+### D-12 · `/readyz` + daemon status indicator · `done`
+- [x] Gateway `check_connection() -> str` (real call: `list_sequences()`; SDK `info()` is
+  cached); `FakeGateway(available=False)` simulates a down daemon.
+- [x] Domain `DaemonStatus`; first service `services/status.get_daemon_status` (unavailable →
+  `reachable=False`, never raises).
+- [x] `/readyz`: 200 `{"status": "ok", "mosaicod_version": ...}` / 503 `unavailable`, 503
+  documented in OpenAPI.
+- [x] Header indicator: `hx-get="/status" hx-trigger="load, every 30s"`, green/orange dot.
+- [x] `DASHBOARD_MOSAICO_CONNECT_TIMEOUT` (default 2 s; SDK default 5 s made every request wait
+  5 s while never connected).
+- [x] **AC:** tests in both states (service, fake, `/readyz`, `/status` fragment, OpenAPI); live:
+  dashboard started with mosaicod down shows "unreachable", switches to connected after
+  mosaicod starts without restart. 66 tests pass.
 
 ### D-13 · Demo data: synthetic ROS 2 bags · `todo`
 - `scripts/make_demo_bags.py` using `rosbags` (already an SDK dependency): deterministic `.mcap`
@@ -400,6 +408,8 @@ hooks were already done in D-01.)
 
 ### D-48 · Finish `dashboard-compose.yml`: add dashboard DB init, worker service, `demo` seed profile · `todo`
 ### D-49 · Integration test in CI against the compose stack · `todo`
+- Start mosaicod (+ demo data) in CI and add a strict switch (e.g. `DASHBOARD_REQUIRE_MOSAICOD=1`)
+  that turns the integration-test skip into a failure when mosaicod is unreachable.
 ### D-50 · README with screenshots, architecture doc final pass, ADR review · `todo`
 ### D-51 · 3-minute demo video · `todo`
 ### D-52 · (Optional) public read-only demo deployment · `todo`

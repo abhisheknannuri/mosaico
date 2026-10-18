@@ -26,7 +26,7 @@ class SdkGateway(MosaicoGateway):
         api_key: str | None = None,
         tls: bool = False,
         tls_cert_path: Path | None = None,
-        connect_timeout: int = 5,
+        connect_timeout: int = 2,
     ):
         self._host = host
         self._port = port
@@ -36,6 +36,12 @@ class SdkGateway(MosaicoGateway):
         self._connect_timeout = connect_timeout
         self._client: MosaicoClient | None = None
         self._lock = threading.Lock()
+
+    def check_connection(self) -> str:
+        with _translate_errors():
+            client = self._fresh_client()
+            client.list_sequences()
+            return client.info().version
 
     def list_recordings(self) -> list[Recording]:
         with _translate_errors():

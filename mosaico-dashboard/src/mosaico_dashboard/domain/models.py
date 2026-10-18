@@ -10,6 +10,13 @@ class DomainModel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class DaemonStatus(DomainModel):
+    """Whether mosaicod answers, and its version when it does."""
+
+    reachable: bool
+    version: str | None
+
+
 class Upload(DomainModel):
     """One ingestion session: an immutable layer of sensor streams in a recording."""
 

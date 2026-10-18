@@ -1,6 +1,10 @@
 import pytest
 
-from mosaico_dashboard.gateway.base import MosaicoGateway, RecordingNotFound
+from mosaico_dashboard.gateway.base import (
+    GatewayUnavailable,
+    MosaicoGateway,
+    RecordingNotFound,
+)
 from mosaico_dashboard.gateway.fake import FakeGateway
 
 
@@ -43,3 +47,12 @@ def test_list_streams_of_unknown_recording_raises(gateway):
 
 def test_custom_data_replaces_samples():
     assert FakeGateway(recordings=[], streams=[]).list_recordings() == []
+
+
+def test_unavailable_fake_raises():
+    gateway = FakeGateway(available=False)
+
+    with pytest.raises(GatewayUnavailable):
+        gateway.check_connection()
+    with pytest.raises(GatewayUnavailable):
+        gateway.list_recordings()

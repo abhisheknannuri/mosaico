@@ -22,6 +22,10 @@ class RecordingNotFound(GatewayError):
 
 
 class MosaicoGateway(Protocol):
+    def check_connection(self) -> str:
+        """Returns the mosaicod version. Raises GatewayUnavailable."""
+        ...
+
     def list_recordings(self) -> list[Recording]: ...
 
     def get_recording(self, name: str) -> Recording:

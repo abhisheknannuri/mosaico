@@ -66,3 +66,7 @@ def test_shared_client_is_safe_across_threads(gateway, recording_name):
         )
 
     assert all(result == expected for result in results)
+
+
+def test_check_connection_returns_version(gateway):
+    assert gateway.check_connection()

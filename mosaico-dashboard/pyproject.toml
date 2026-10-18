@@ -52,7 +52,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--import-mode=importlib"
+addopts = "--import-mode=importlib -rs"
 markers = ["integration: needs a running mosaicod on localhost:6726"]
 
 [tool.importlinter]

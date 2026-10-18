@@ -7,6 +7,8 @@
   --text: #afafaf;
   --heading: #ffffff;
   --link: hsl(304, 54%, 78%);
+  --ok: hsl(140, 50%, 50%);
+  --down: hsl(12, 88%, 64%);
   --orange-low: hsl(12, 88%, 39%);
   --purple-low: hsl(304, 54%, 32%);
   --blue-low: hsl(195, 76%, 28%);
@@ -66,6 +68,28 @@ header {
   border-left: 1px solid var(--border);
   color: var(--text);
   font-size: 1.05rem;
+}
+
+.daemon-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.ok {
+  background: var(--ok);
+}
+
+.status-dot.down {
+  background: var(--down);
 }
 
 nav {

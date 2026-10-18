@@ -3,7 +3,11 @@
 from datetime import datetime, timedelta, timezone
 
 from mosaico_dashboard.domain.models import Recording, SensorStream, Upload
-from mosaico_dashboard.gateway.base import MosaicoGateway, RecordingNotFound
+from mosaico_dashboard.gateway.base import (
+    GatewayUnavailable,
+    MosaicoGateway,
+    RecordingNotFound,
+)
 
 
 class FakeGateway(MosaicoGateway):
@@ -11,16 +15,24 @@ class FakeGateway(MosaicoGateway):
         self,
         recordings: list[Recording] | None = None,
         streams: list[SensorStream] | None = None,
+        available: bool = True,
     ):
+        self._available = available
         self._streams = sample_streams() if streams is None else streams
         self._recordings = (
             sample_recordings(self._streams) if recordings is None else recordings
         )
 
+    def check_connection(self) -> str:
+        self._ensure_available()
+        return "0.8.0-dev"
+
     def list_recordings(self) -> list[Recording]:
+        self._ensure_available()
         return list(self._recordings)
 
     def get_recording(self, name: str) -> Recording:
+        self._ensure_available()
         for recording in self._recordings:
             if recording.name == name:
                 return recording
@@ -32,6 +44,10 @@ class FakeGateway(MosaicoGateway):
 
     def close(self) -> None:
         pass
+
+    def _ensure_available(self) -> None:
+        if not self._available:
+            raise GatewayUnavailable("fake mosaicod is down")
 
 
 RECORDED_AT = datetime(2024, 5, 10, 0, 27, 24, tzinfo=timezone.utc)

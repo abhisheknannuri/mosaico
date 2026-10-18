@@ -1,0 +1,5 @@
+{% if status.reachable %}
+<span class="status-dot ok"></span>mosaicod {{ status.version }}
+{% else %}
+<span class="status-dot down"></span>mosaicod unreachable
+{% endif %}

@@ -195,7 +195,7 @@ Contracts (all must be `KEPT`):
 
 | Kind | Where | URL | In OpenAPI (`/docs`) | Returns |
 |---|---|---|---|---|
-| Ops | `web/health.py` | `/healthz` (later `/readyz`) | Yes, tag `ops` | JSON |
+| Ops | `web/health.py` | `/healthz` (process alive), `/readyz` (mosaicod reachable, 200/503) | Yes, tag `ops` | JSON |
 | JSON API | `web/api/` | `/api/v1/...` | Yes, tag per feature | JSON, Pydantic model as return type |
 | HTML pages | `web/pages/` | `/`, `/recordings`, ... | No (`include_in_schema=False`) | Full page, or fragment for htmx |
 
@@ -203,6 +203,9 @@ Contracts (all must be `KEPT`):
   model.
 - `operationId` is the Python function name (e.g. `healthz`), so names stay readable in
   generated clients.
+- Response models: a JSON route returns a domain model directly when its shape fits. Models
+  that exist only for the HTTP response stay next to their route (e.g. `Health`, `Readiness` in
+  `web/health.py`) and move to `web/api/schemas.py` once several `/api/v1` routes share them.
 - Errors use FastAPI's standard `{"detail": ...}` until a task needs more.
 - Interactive docs: `/docs` (Swagger UI) and `/redoc`; schema at `/openapi.json`.
 
