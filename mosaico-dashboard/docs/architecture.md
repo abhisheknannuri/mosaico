@@ -116,6 +116,19 @@ Settings and logging live at the package root (ADR-0007): `settings.py` reads `D
 variables from the environment or `.env`; `logging_config.py` sends dashboard, uvicorn and SDK
 logs to one console handler.
 
+### Domain vocabulary
+
+| Mosaico (SDK) | Dashboard model | Shown as |
+|---|---|---|
+| Sequence | `Recording` | Recording |
+| Topic | `SensorStream` | Sensor stream, labelled by `vocabulary.sensor_type(ontology_tag)` |
+| Session | `Upload` | Upload |
+
+- Times in the domain are UTC `datetime`; the gateway converts the SDK's nanoseconds.
+- A recording has two times: `uploaded_at` (sequence created in Mosaico) and
+  `data_start`/`data_end` (when the robot recorded, from the topics' timestamps).
+- `domain/format.py` turns sizes, times and durations into text for templates.
+
 ## 3. Import graph
 
 Arrows mean "imports". Rules are enforced by `import-linter` (`[tool.importlinter]` in

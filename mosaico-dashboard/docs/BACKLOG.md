@@ -207,12 +207,17 @@ hooks were already done in D-01.)
 > dashboard DB/index comes in Sprint 2, **when we feel the need** (slow list, no sorting). That's
 > the scrum way: working slice first, optimise second.
 
-### D-09 · Domain models & formatting helpers · `todo`
-- `domain/models.py`: frozen dataclasses/Pydantic models `Recording`, `SensorStream`, `Upload`,
-  `Notice` (dashboard vocabulary, **not** SDK types).
-- `domain/format.py`: bytes → "4.2 GB", ns → datetime, duration → "12 min 30 s", rate → "≈ 200 Hz".
-- `domain/vocabulary.py`: `ontology_tag` → friendly label + icon key (unknown → "Other").
-- **AC:** unit tests for each helper incl. edge cases (0 bytes, None timestamps, unknown tag).
+### D-09 · Domain models & formatting helpers · `done`
+- [x] `domain/models.py`: frozen Pydantic models `Recording` (sequence), `SensorStream` (topic),
+  `Upload` (session). Times are UTC `datetime`; `uploaded_at` (created) vs `data_start/end`
+  (recorded). `SensorStream.ros_type` from `user_metadata["_ros_"]["msgtype"]`.
+- [x] `domain/format.py`: `format_bytes` (decimal units), `format_duration`, `format_datetime` (UTC).
+- [x] `domain/vocabulary.py`: `sensor_type(tag)` → label + category; unknown tags keep their name
+  (category "Other"). Tags are ontology class names (`IMU`, `CompressedImage`), checked against
+  the 4 local recordings and the SDK's 59 built-in classes.
+- Deferred: `Notice` (D-16), message rate "≈ Hz" (needs message counts, Sprint 2).
+- [x] **AC:** unit tests incl. 0 bytes, huge sizes, `None` times, unknown tag, immutability,
+  wrong types. 41 tests pass.
 
 ### D-10 · Gateway Protocol + FakeGateway · `todo`
 - `gateway/base.py`: `MosaicoGateway` Protocol: `server_info()`, `list_recording_names()`,
