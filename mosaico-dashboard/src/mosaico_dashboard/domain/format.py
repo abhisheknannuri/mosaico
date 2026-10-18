@@ -36,7 +36,7 @@ def format_duration(duration: timedelta | None) -> str:
 
 
 def format_datetime(value: datetime | None) -> str:
-    """'10 May 2024, 00:27 UTC'."""
+    """'3 Sep 2026, 14:30 UTC'."""
     if value is None:
         return EMPTY
-    return value.strftime("%d %b %Y, %H:%M UTC")
+    return f"{value.day} {value:%b %Y, %H:%M} UTC"

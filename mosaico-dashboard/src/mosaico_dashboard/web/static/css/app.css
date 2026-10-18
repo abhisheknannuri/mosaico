@@ -127,6 +127,64 @@ main {
   margin: 0 0 16px;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--heading);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover {
+  background: var(--bg-hi);
+}
+
+th:first-child,
+td:first-child {
+  padding-left: 0;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 0;
+}
+
+th.num,
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.name {
+  color: var(--heading);
+}
+
+.chip {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+code {
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
 button {
   font: inherit;
   font-size: 0.9rem;

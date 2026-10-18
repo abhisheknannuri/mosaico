@@ -52,6 +52,13 @@ class Recording(DomainModel):
         return sum(len(upload.topics) for upload in self.uploads)
 
 
+class RecordingSummary(DomainModel):
+    """A recording with the sensor categories of its streams, for list views."""
+
+    recording: Recording
+    sensor_categories: list[str]
+
+
 class SensorStream(DomainModel):
     """A Mosaico topic: one stream of typed messages inside a recording."""
 

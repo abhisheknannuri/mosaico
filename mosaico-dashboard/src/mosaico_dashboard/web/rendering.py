@@ -7,7 +7,16 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from mosaico_dashboard.domain.format import (
+    format_bytes,
+    format_datetime,
+    format_duration,
+)
+
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+templates.env.filters["bytes"] = format_bytes
+templates.env.filters["duration"] = format_duration
+templates.env.filters["datetime"] = format_datetime
 
 
 def wants_fragment(request: Request) -> bool:

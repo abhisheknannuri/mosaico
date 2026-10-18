@@ -229,6 +229,8 @@ flowchart LR
 - Responses carry `Vary: HX-Request` so caches keep the two versions apart.
 - Without JavaScript, forms and links are normal GET requests and get full pages.
 - Static files use plain `/static/...` paths (no absolute URLs), so they work behind a proxy.
+- Templates format values with Jinja filters registered in `rendering.py` from
+  `domain/format.py`: `{{ r.size_bytes | bytes }}`, `| duration`, `| datetime`.
 
 ## 5. Testing conventions
 

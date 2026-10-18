@@ -44,4 +44,5 @@ def test_format_datetime():
     value = datetime(2024, 5, 10, 0, 27, 24, tzinfo=timezone.utc)
 
     assert format_datetime(value) == "10 May 2024, 00:27 UTC"
+    assert format_datetime(value.replace(day=3)) == "3 May 2024, 00:27 UTC"
     assert format_datetime(None) == "—"

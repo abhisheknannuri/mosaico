@@ -268,9 +268,17 @@ hooks were already done in D-01.)
 - Test hygiene: root `tests/conftest.py` (no `.env`, logger restored), `client_daemon_down`
   fixture, testing conventions in `architecture.md` §5.
 
-### D-14 · Recordings list page (live) · `todo`
-- `/recordings`: table with name, recorded date, duration, size, # streams, sensor-type chips.
-- **AC:** web test with fake; manual check against local daemon.
+### D-14 · Recordings list page (live) · `done`
+- [x] `/recordings`: name, recorded date, duration, sensor-category chips, stream count, size;
+  newest recorded first, undated last; empty state with the seed command.
+- [x] Domain `RecordingSummary`; service `services/recordings.list_recording_summaries`
+  (categories need one `list_streams` call per recording: ~0.2 s for 7 live recordings, index in
+  Sprint 2).
+- [x] Jinja filters `bytes`, `duration`, `datetime` (from `domain/format.py`); nav link.
+- [x] **AC:** service tests (categories, sorting, empty) and web tests (rows, formatting, chips,
+  fragment, empty state, nav); live screenshot reviewed (edge alignment, tabular numbers,
+  "3 Sep" dates). 74 tests pass.
+- Row links come with D-15; "mosaicod down" banner is D-17.
 
 ### D-15 · Recording detail page · `todo`
 - `/recordings/{name}`: summary card (dates, duration, size, metadata as key/value list),
