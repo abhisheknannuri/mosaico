@@ -70,7 +70,9 @@ mosaico-dashboard/
 ├── pyproject.toml            # dependencies, ruff, pyright, pytest, import-linter config
 ├── scripts/
 │   ├── dev_setup.sh          # venv + editable SDK
-│   └── check.sh              # format, lint, import rules, types, tests
+│   ├── check.sh              # format, lint, import rules, types, tests
+│   ├── make_demo_bags.py     # synthetic ROS 2 demo bags → demo-data/ (git-ignored)
+│   └── seed_demo.py          # ingest missing demo bags into mosaicod (SDK RosbagInjector)
 ├── src/mosaico_dashboard/
 │   ├── main.py               # create_app(settings) and the ASGI `app`
 │   ├── __main__.py           # run command (D-04)
@@ -228,7 +230,24 @@ flowchart LR
 - Without JavaScript, forms and links are normal GET requests and get full pages.
 - Static files use plain `/static/...` paths (no absolute URLs), so they work behind a proxy.
 
-## 5. Request flow (example: recordings page)
+## 5. Testing conventions
+
+| Folder | What | Needs |
+|---|---|---|
+| `tests/unit/` | domain, services, gateways in isolation | nothing |
+| `tests/web/` | routes through `TestClient`, app built with `FakeGateway` | nothing |
+| `tests/integration/` | `SdkGateway` against real data, marked `integration` | mosaicod on `localhost:6726`, otherwise skipped (reason printed) |
+
+- Use `FakeGateway` (a real in-memory implementation), not mocks. `FakeGateway(available=False)`
+  simulates a down daemon.
+- Shared setup lives in `conftest.py` fixtures: `tests/conftest.py` (every test runs in an empty
+  temp directory, so no `.env` is read, and the root logger is restored), `tests/web/conftest.py`
+  (`gateway`, `client`, `client_daemon_down`).
+- One behaviour per test, named after it; `parametrize` for tables of cases.
+- Tests must pass in any order (checked by running files in reverse order).
+- `bash ./scripts/check.sh` is the only entry point, locally and in CI.
+
+## 6. Request flow (example: recordings page)
 
 ```mermaid
 sequenceDiagram

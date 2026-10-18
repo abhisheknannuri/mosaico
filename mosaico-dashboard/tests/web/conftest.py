@@ -14,3 +14,8 @@ def gateway() -> FakeGateway:
 @pytest.fixture
 def client(gateway) -> TestClient:
     return TestClient(create_app(Settings(), gateway=gateway))
+
+
+@pytest.fixture
+def client_daemon_down() -> TestClient:
+    return TestClient(create_app(Settings(), gateway=FakeGateway(available=False)))

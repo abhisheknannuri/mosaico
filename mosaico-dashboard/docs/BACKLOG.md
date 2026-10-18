@@ -255,13 +255,18 @@ hooks were already done in D-01.)
   dashboard started with mosaicod down shows "unreachable", switches to connected after
   mosaicod starts without restart. 66 tests pass.
 
-### D-13 · Demo data: synthetic ROS 2 bags · `todo`
-- `scripts/make_demo_bags.py` using `rosbags` (already an SDK dependency): deterministic `.mcap`
-  files with `sensor_msgs/Imu` (200 Hz), `sensor_msgs/NavSatFix` (10 Hz), `sensor_msgs/Image`
-  (small, 5 Hz), `nav_msgs/Odometry`; one bag with a deliberate gap, varied user metadata
-  (project, site, robot).
-- `scripts/seed.sh`: ingest them with the SDK's `mosaicolabs.ros_injector`.
-- **AC:** after seeding, the integration test from D-11 sees the demo recordings.
+### D-13 · Demo data: synthetic ROS 2 bags · `done`
+- [x] `scripts/make_demo_bags.py`: 3 deterministic ROS 2 `.mcap` bags in `demo-data/`
+  (git-ignored): IMU 200 Hz, GPS 10 Hz, odometry 50 Hz, camera 5 Hz (64×48 rgb8), battery 1 Hz,
+  temperature 1 Hz; metadata project / site / robot; `demo_warehouse_run_02` has no GPS from
+  20–35 s.
+- [x] `scripts/seed_demo.py`: ingests bags mosaicod doesn't have yet with the SDK's
+  `RosbagInjector` (generates missing bags; re-runs skip quietly).
+- [x] **AC:** injector dry run accepts all 12 topics (correct adapters); seeded and read back
+  through `SdkGateway` (metadata, dates, durations, sensor labels); re-run and
+  delete-then-reseed verified.
+- Test hygiene: root `tests/conftest.py` (no `.env`, logger restored), `client_daemon_down`
+  fixture, testing conventions in `architecture.md` §5.
 
 ### D-14 · Recordings list page (live) · `todo`
 - `/recordings`: table with name, recorded date, duration, size, # streams, sensor-type chips.
@@ -357,7 +362,10 @@ hooks were already done in D-01.)
   and no mean/std at all (see ADR-0004).
 
 ### D-30 · Coverage timeline on recording page · `todo`
-- One bar per stream across the recording's time span (from `data_start/data_end`); gaps obvious.
+- One bar per stream across the recording's time span (from `data_start/data_end`).
+- Gaps **inside** a stream (e.g. GPS 20–35 s in `demo_warehouse_run_02`) don't change
+  `data_start/data_end`; showing them needs message timestamps (read via the data streamer,
+  bucketed like D-26).
 
 ### D-31 · Image thumbnail strip · `todo`
 - K evenly spaced frames for `image` streams, small JPEGs, cached on disk.

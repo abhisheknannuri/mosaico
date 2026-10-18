@@ -8,3 +8,6 @@ dist/
 
 # decision files (kept locally)
 /docs/decisions/
+
+# generated demo bags
+demo-data/

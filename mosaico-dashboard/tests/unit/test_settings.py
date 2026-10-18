@@ -4,11 +4,6 @@ from pydantic import ValidationError
 from mosaico_dashboard.settings import Settings
 
 
-@pytest.fixture(autouse=True)
-def no_env_file(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-
-
 def test_defaults():
     settings = Settings()
 

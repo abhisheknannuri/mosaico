@@ -56,6 +56,17 @@ poetry run mosaico-dashboard
 - Health check: <http://127.0.0.1:8000/healthz>
 - API docs: <http://127.0.0.1:8000/docs>
 
+## Demo data
+
+With mosaicod running, add three small synthetic ROS 2 recordings (IMU, GPS, odometry, camera,
+battery, temperature; different projects, sites and robots):
+
+```bash
+poetry run python scripts/seed_demo.py
+```
+
+Bags are written to `demo-data/` (git-ignored). Re-running skips recordings mosaicod already has.
+
 ## Running everything in containers
 
 From the repository root:
