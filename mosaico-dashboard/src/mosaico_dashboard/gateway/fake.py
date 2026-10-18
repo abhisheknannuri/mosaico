@@ -3,10 +3,10 @@
 from datetime import datetime, timedelta, timezone
 
 from mosaico_dashboard.domain.models import Recording, SensorStream, Upload
-from mosaico_dashboard.gateway.base import RecordingNotFound
+from mosaico_dashboard.gateway.base import MosaicoGateway, RecordingNotFound
 
 
-class FakeGateway:
+class FakeGateway(MosaicoGateway):
     def __init__(
         self,
         recordings: list[Recording] | None = None,
@@ -29,6 +29,9 @@ class FakeGateway:
     def list_streams(self, recording: str) -> list[SensorStream]:
         self.get_recording(recording)
         return [s for s in self._streams if s.recording == recording]
+
+    def close(self) -> None:
+        pass
 
 
 RECORDED_AT = datetime(2024, 5, 10, 0, 27, 24, tzinfo=timezone.utc)

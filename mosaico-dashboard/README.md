@@ -84,6 +84,12 @@ bash ./scripts/check.sh
 CI (`.github/workflows/dashboard-ci.yml`) runs the same script on Python 3.10 and 3.13,
 then builds the Docker image and checks that the container starts.
 
+Integration tests need mosaicod running (development profile); without it they are skipped:
+
+```bash
+poetry run pytest -m integration
+```
+
 Fix formatting and lint issues:
 
 ```bash

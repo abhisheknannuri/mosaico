@@ -228,15 +228,18 @@ hooks were already done in D-01.)
 - Deferred: `server_info()` (D-12), notifications (D-16).
 - [x] **AC:** unit tests on the fake (list, get, not found, streams per recording). 47 tests pass.
 
-### D-11 · SDK gateway implementation · `todo`
-- `gateway/sdk.py`: synchronous `SdkGateway` wrapping `MosaicoClient` (ADR-0012); maps SDK
-  objects → domain models (ns → UTC `datetime`, `ros_type` from `_ros_.msgtype`); SDK
-  exceptions → `GatewayUnavailable` / `RecordingNotFound`.
-- Connection created in the app lifespan, closed on shutdown.
-- **Spike inside this task:** is one `MosaicoClient` safe across threads? Measure time to fetch
-  metadata for all local sequences. **Write an ADR** with the result (shared client vs pool).
-- **AC:** integration test (marked `integration`, skipped if no daemon) lists the real local
-  sequences.
+### D-11 · SDK gateway implementation · `done`
+- [x] Spike (`docs/decisions/spikes/d11_sdk_threads.py`): timings, 40 threads on one client
+  (0 errors), connect cost, daemon stop/restart. Results in ADR-0013.
+- [x] `gateway/sdk.py`: `SdkGateway`, one lazily connected shared client, SDK caches cleared per
+  call, not-found vs down via `list_sequences()`, Flight errors → gateway errors, ns → UTC,
+  `ros_type` from `_ros_.msgtype`.
+- [x] `close()` added to the Protocol; app lifespan closes the gateway; `create_app(settings,
+  gateway=None)`; `web/dependencies.get_gateway`.
+- [x] Tests: unit (unreachable → `GatewayUnavailable`, ns conversion); integration
+  (`pytest -m integration`, skipped without mosaicod) incl. a 40-thread regression test.
+  54 tests pass locally (5 integration).
+- Known limit: no per-call timeout in the SDK (ADR-0013).
 
 ### D-12 · `/readyz` + daemon status indicator · `todo`
 - `/readyz`: 200 if `server_info()` answers within timeout, else 503.

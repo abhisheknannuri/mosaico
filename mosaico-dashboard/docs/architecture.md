@@ -132,10 +132,16 @@ logs to one console handler.
 ### Gateway
 
 `gateway/base.py` defines `MosaicoGateway`, a Protocol (interface) of what the dashboard asks
-mosaicod for. Implementations: `FakeGateway` (in memory, tests) and the SDK gateway (D-11).
+mosaicod for. Implementations inherit it explicitly: `FakeGateway` (in memory, tests) and
+`SdkGateway` (D-11).
 It is **synchronous**: the SDK blocks, so services are plain functions and page routes are
 `def`; FastAPI runs `def` routes in its thread pool. Errors: `GatewayUnavailable`,
 `RecordingNotFound` (both `GatewayError`).
+
+`SdkGateway` (ADR-0013) holds **one shared `MosaicoClient`**, connected on first use and closed
+by the app lifespan. Every call clears the SDK's handler caches, so data is never stale.
+`create_app(settings, gateway=None)` builds it from settings; tests pass `FakeGateway`. Routes
+receive the gateway through the `get_gateway` dependency (`web/dependencies.py`).
 
 ## 3. Import graph
 
