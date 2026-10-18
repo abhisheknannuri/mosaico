@@ -9,6 +9,11 @@ from mosaico_dashboard.gateway.base import MosaicoGateway
 _OLDEST = datetime.min.replace(tzinfo=timezone.utc)
 
 
+def recorded_at(recording: Recording) -> datetime:
+    """Sort key: when the data was recorded; recordings without data sort oldest."""
+    return recording.data_start or _OLDEST
+
+
 def list_recording_summaries(gateway: MosaicoGateway) -> list[RecordingSummary]:
     """Newest recorded first; recordings without data last."""
     summaries = [
@@ -18,9 +23,7 @@ def list_recording_summaries(gateway: MosaicoGateway) -> list[RecordingSummary]:
         )
         for recording in gateway.list_recordings()
     ]
-    return sorted(
-        summaries, key=lambda s: s.recording.data_start or _OLDEST, reverse=True
-    )
+    return sorted(summaries, key=lambda s: recorded_at(s.recording), reverse=True)
 
 
 def _sensor_categories(gateway: MosaicoGateway, recording: Recording) -> list[str]:

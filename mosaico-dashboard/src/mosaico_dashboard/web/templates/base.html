@@ -1,3 +1,4 @@
+{% set path = request.url.path %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,22 +7,40 @@
   <title>{% block title %}Mosaico Dashboard{% endblock %}</title>
   <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    try { if (localStorage.getItem("nav") === "collapsed") document.documentElement.classList.add("nav-collapsed"); } catch (e) {}
+  </script>
   <script src="/static/vendor/htmx-2.0.11.min.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
 </head>
 <body>
-  <header>
-    <a class="brand" href="/">
-      <img src="/static/img/mosaico-logo.svg" alt="Mosaico">
-      <span>Dashboard</span>
-    </a>
-    <div class="daemon-status" hx-get="/status" hx-trigger="load, every 30s"></div>
-  </header>
-  <nav hx-boost="true">
-    <a href="/">Overview</a>
-    <a href="/recordings">Recordings</a>
-  </nav>
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+  <div class="app">
+    <header class="topbar">
+      <button class="icon-button" type="button" onclick="toggleNav()" aria-label="Toggle navigation">
+        {% include "icons/panel-left.svg" %}
+      </button>
+      <a class="brand" href="/">
+        <img src="/static/img/mosaico-logo.svg" alt="Mosaico">
+        <span>Dashboard</span>
+      </a>
+      <div class="daemon-status" hx-get="/status" hx-trigger="load, every 30s"></div>
+    </header>
+
+    <nav class="sidebar" hx-boost="true">
+      <a href="/" title="Overview" {% if path == "/" %}aria-current="page"{% endif %}>
+        {% include "icons/layout-dashboard.svg" %}<span>Overview</span>
+      </a>
+      <a href="/recordings" title="Recordings" {% if path.startswith("/recordings") %}aria-current="page"{% endif %}>
+        {% include "icons/database.svg" %}<span>Recordings</span>
+      </a>
+      <a class="sidebar-bottom" href="/docs" title="API docs" hx-boost="false">
+        {% include "icons/book-open.svg" %}<span>API docs</span>
+      </a>
+    </nav>
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
 </body>
 </html>

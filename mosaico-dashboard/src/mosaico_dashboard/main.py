@@ -14,7 +14,7 @@ from mosaico_dashboard.gateway.sdk import SdkGateway
 from mosaico_dashboard.logging_config import setup_logging
 from mosaico_dashboard.settings import Settings, get_settings
 from mosaico_dashboard.web import health
-from mosaico_dashboard.web.pages import home, recordings, status
+from mosaico_dashboard.web.pages import overview, recordings, status
 
 STATIC_DIR = Path(__file__).parent / "web" / "static"
 
@@ -54,7 +54,7 @@ def create_app(settings: Settings, gateway: MosaicoGateway | None = None) -> Fas
     app.state.gateway = gateway
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health.router)
-    app.include_router(home.router)
+    app.include_router(overview.router)
     app.include_router(status.router)
     app.include_router(recordings.router)
 

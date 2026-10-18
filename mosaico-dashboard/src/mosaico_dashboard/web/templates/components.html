@@ -1,0 +1,59 @@
+{# Reusable UI components. Import with: {% import "components.html" as ui %} #}
+
+{% macro page_header(title, subtitle=None, back_href=None, back_label=None) %}
+<div class="page-header">
+  {% if back_href %}<a class="back" href="{{ back_href }}">← {{ back_label }}</a>{% endif %}
+  <h1>{{ title }}</h1>
+  {% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro stat(label, value, hint=None, title=None) %}
+<div class="stat">
+  <span class="stat-label">{{ label }}</span>
+  <span class="stat-value"{% if title %} title="{{ title }}"{% endif %}>{{ value }}</span>
+  {% if hint %}<span class="stat-hint">{{ hint }}</span>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro card(title=None, id=None, link_href=None, link_label=None) %}
+<section class="card"{% if id %} id="{{ id }}"{% endif %}>
+  {% if title %}
+  <div class="card-header">
+    <h2>{{ title }}</h2>
+    {% if link_href %}<a href="{{ link_href }}">{{ link_label }}</a>{% endif %}
+  </div>
+  {% endif %}
+  {{ caller() }}
+</section>
+{% endmacro %}
+
+{% macro chips(items) %}
+{% for item in items %}<span class="chip">{{ item }}</span>{% endfor %}
+{% endmacro %}
+
+{% macro bar(label, value, share, title=None) %}
+{# One row of a <ul class="bar-list">; share is between 0 and 1. #}
+<li>
+  <span class="bar-label">{{ label }}</span>
+  <span class="bar-track"><span class="bar-fill" style="width: {{ (share * 100) | round(1) }}%"></span></span>
+  <span class="bar-value"{% if title %} title="{{ title }}"{% endif %}>{{ value }}</span>
+  <span class="bar-share">{{ share | percent }}</span>
+</li>
+{% endmacro %}
+
+{% macro key_values(mapping) %}
+<dl class="key-values">
+  {% for key, value in mapping.items() %}
+  <dt>{{ key }}</dt>
+  <dd>{{ value }}</dd>
+  {% endfor %}
+</dl>
+{% endmacro %}
+
+{% macro empty_state(title) %}
+<div class="empty-state">
+  <h2>{{ title }}</h2>
+  {{ caller() }}
+</div>
+{% endmacro %}

@@ -280,6 +280,17 @@ hooks were already done in D-01.)
   "3 Sep" dates). 74 tests pass.
 - Row links come with D-15; "mosaicod down" banner is D-17.
 
+### D-14b · UI foundations: layout, components, overview · `done`
+- [x] Fixed top bar + collapsible left sidebar (icon rail, remembered in `localStorage`, current
+  page highlighted), Lucide 1.49.0 icons vendored, brand gradient line.
+- [x] `templates/components.html` macros: `page_header`, `stat`, `card`, `chips`, `bar`,
+  `key_values`, `empty_state`; CSS reorganised (tokens → base → layout → components).
+- [x] Overview page `/`: KPI tiles, storage by sensor category, latest 5 recordings
+  (`services/overview.py`, domain `Overview`, `CategoryStorage`); placeholder home removed.
+- [x] Recordings page uses the components. `docs/ui.md` guide; ADR-0017.
+- [x] **AC:** tests for rendering rules, layout (active page, icons, collapse script), overview
+  service and page; screenshots reviewed expanded and collapsed. 85 tests pass.
+
 ### D-15 · Recording detail page · `todo`
 - `/recordings/{name}`: summary card (dates, duration, size, metadata as key/value list),
   sensor streams table (friendly type, ROS topic path as secondary text, size, time range),

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "components.html" as ui %}
 
 {% block title %}Recordings · Mosaico Dashboard{% endblock %}
 
 {% block content %}
-<h1>Recordings</h1>
+{{ ui.page_header("Recordings", "Everything recorded by your robots, newest first.") }}
 {% include "partials/recordings_table.html" %}
 {% endblock %}

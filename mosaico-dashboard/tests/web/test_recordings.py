@@ -19,7 +19,8 @@ def test_rows_show_formatted_values_and_sensor_chips(client):
 
     assert "10 May 2024, 00:27 UTC" in text
     assert "20.5 s" in text
-    assert "598.2 MB" in text
+    assert "598 MB" in text
+    assert "598,200,000 bytes" in text
     assert '<span class="chip">Camera</span>' in text
 
 

@@ -59,6 +59,23 @@ class RecordingSummary(DomainModel):
     sensor_categories: list[str]
 
 
+class CategoryStorage(DomainModel):
+    category: str
+    size_bytes: int
+    share: float
+
+
+class Overview(DomainModel):
+    """Catalog-wide totals for the overview page."""
+
+    recording_count: int
+    stream_count: int
+    total_bytes: int
+    recorded_duration: timedelta
+    storage_by_category: list[CategoryStorage]
+    latest: list[Recording]
+
+
 class SensorStream(DomainModel):
     """A Mosaico topic: one stream of typed messages inside a recording."""
 

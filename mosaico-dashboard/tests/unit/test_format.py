@@ -4,8 +4,10 @@ import pytest
 
 from mosaico_dashboard.domain.format import (
     format_bytes,
+    format_bytes_exact,
     format_datetime,
     format_duration,
+    format_percent,
 )
 
 
@@ -14,11 +16,14 @@ from mosaico_dashboard.domain.format import (
     [
         (0, "0 B"),
         (999, "999 B"),
-        (1000, "1.0 kB"),
+        (1000, "1.00 kB"),
+        (6162, "6.16 kB"),
         (14383, "14.4 kB"),
-        (366185194, "366.2 MB"),
-        (2_500_000_000, "2.5 GB"),
-        (3 * 10**18, "3000.0 PB"),
+        (366185194, "366 MB"),
+        (999_600, "1.00 MB"),
+        (1_974_553_483, "1.97 GB"),
+        (1_979_880_035, "1.98 GB"),
+        (3 * 10**18, "3000 PB"),
     ],
 )
 def test_format_bytes(size, expected):
@@ -46,3 +51,21 @@ def test_format_datetime():
     assert format_datetime(value) == "10 May 2024, 00:27 UTC"
     assert format_datetime(value.replace(day=3)) == "3 May 2024, 00:27 UTC"
     assert format_datetime(None) == "—"
+
+
+def test_format_bytes_exact():
+    assert format_bytes_exact(1_979_880_035) == "1,979,880,035 bytes"
+
+
+@pytest.mark.parametrize(
+    ("share", "expected"),
+    [
+        (0.0, "0.0%"),
+        (0.0001, "<0.1%"),
+        (0.0019, "0.2%"),
+        (0.9973, "99.7%"),
+        (1.0, "100.0%"),
+    ],
+)
+def test_format_percent(share, expected):
+    assert format_percent(share) == expected

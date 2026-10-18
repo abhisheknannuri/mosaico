@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+
+{% block content %}
+{{ ui.page_header("Overview", "Everything stored in this Mosaico instance.") }}
+{% include "partials/overview.html" %}
+{% endblock %}

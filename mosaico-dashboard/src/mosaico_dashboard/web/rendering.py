@@ -9,12 +9,16 @@ from fastapi.templating import Jinja2Templates
 
 from mosaico_dashboard.domain.format import (
     format_bytes,
+    format_bytes_exact,
     format_datetime,
     format_duration,
+    format_percent,
 )
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["bytes"] = format_bytes
+templates.env.filters["bytes_exact"] = format_bytes_exact
+templates.env.filters["percent"] = format_percent
 templates.env.filters["duration"] = format_duration
 templates.env.filters["datetime"] = format_datetime
 

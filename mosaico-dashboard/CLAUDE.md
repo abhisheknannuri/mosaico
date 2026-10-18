@@ -20,6 +20,7 @@
 - Layers `web → services → gateway → domain`, enforced by import-linter (`docs/architecture.md`). Only `gateway/` imports `mosaicolabs`. Create folders only when a task needs them.
 - Keep `docs/architecture.md` up to date when structure changes.
 - Gateway, services and page routes are synchronous (`def`), because the SDK blocks (ADR-0012).
+- UI: follow `docs/ui.md` (component macros, tokens, no page-specific CSS); screenshot-review every UI change.
 - Tests: follow `docs/architecture.md` §5 (FakeGateway not mocks, fixtures in conftest, hermetic, order-independent).
 - CI: `.github/workflows/dashboard-ci.yml` runs `scripts/check.sh` (Py 3.10, 3.13) + Docker build/healthz. Keep `check.sh` the single source of checks.
 - Dockerfile: `docker/dockerfiles/Dockerfile.mosaico-dashboard`. Compose: `docker/devel/dashboard-compose.yml` (profiles `development`, `production`).

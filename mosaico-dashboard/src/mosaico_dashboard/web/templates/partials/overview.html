@@ -1,0 +1,40 @@
+{% import "components.html" as ui %}
+<div id="overview">
+{% if overview.recording_count %}
+  <div class="stats">
+    {{ ui.stat("Recordings", overview.recording_count) }}
+    {{ ui.stat("Stored", overview.total_bytes | bytes, "compressed, in mosaicod", overview.total_bytes | bytes_exact) }}
+    {{ ui.stat("Total recorded duration", overview.recorded_duration | duration) }}
+    {{ ui.stat("Sensor streams", overview.stream_count, "across all recordings") }}
+  </div>
+
+  <div class="cards">
+    {% call ui.card("Storage by sensor type") %}
+      <ul class="bar-list">
+        {% for item in overview.storage_by_category %}
+          {{ ui.bar(item.category, item.size_bytes | bytes, item.share, item.size_bytes | bytes_exact) }}
+        {% endfor %}
+      </ul>
+    {% endcall %}
+
+    {% call ui.card("Latest recordings", link_href="/recordings", link_label="View all") %}
+      <table>
+        <tbody>
+        {% for r in overview.latest %}
+          <tr>
+            <td class="name">{{ r.name }}</td>
+            <td>{{ r.data_start | datetime }}</td>
+            <td class="num" title="{{ r.size_bytes | bytes_exact }}">{{ r.size_bytes | bytes }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endcall %}
+  </div>
+{% else %}
+  {% call ui.empty_state("No recordings yet") %}
+    <p>Ingest a ROS bag with the SDK, or add the demo data:
+      <code>poetry run python scripts/seed_demo.py</code></p>
+  {% endcall %}
+{% endif %}
+</div>

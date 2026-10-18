@@ -87,11 +87,14 @@ mosaico-dashboard/
 │       ├── pages/            # HTML routes (pages + htmx fragments)
 │       ├── api/              # JSON routes under /api/v1
 │       ├── templates/
-│       │   ├── base.html     # layout: head, top bar, nav
+│       │   ├── base.html     # layout: top bar, collapsible sidebar, content
+│       │   ├── components.html  # UI macros (docs/ui.md)
+│       │   ├── icons/        # Lucide SVG icons (vendored)
 │       │   ├── pages/        # full pages, extend base.html
 │       │   └── partials/     # fragments, included by pages and returned to htmx
 │       └── static/
-│           ├── css/app.css   # styles, Mosaico brand colours (from docs/py extra.css)
+│           ├── css/app.css   # tokens, base, layout, components (docs/ui.md)
+│           ├── js/app.js     # sidebar collapse
 │           ├── img/          # Mosaico logo, favicon (copied from logo/ and docs/py)
 │           └── vendor/       # htmx-2.0.11.min.js (pinned, no CDN)
 ├── tests/
