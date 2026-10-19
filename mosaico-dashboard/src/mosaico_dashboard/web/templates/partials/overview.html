@@ -5,7 +5,7 @@
     {{ ui.stat("Recordings", overview.recording_count) }}
     {{ ui.stat("Stored", overview.total_bytes | bytes, "compressed, in mosaicod", overview.total_bytes | bytes_exact) }}
     {{ ui.stat("Total recorded duration", overview.recorded_duration | duration) }}
-    {{ ui.stat("Sensor streams", overview.stream_count, "across all recordings") }}
+    {{ ui.stat("Streams", overview.stream_count, "across all recordings") }}
   </div>
 
   <div class="cards">
@@ -34,7 +34,7 @@
       </table>
     {% endcall %}
 
-    {% call ui.card("Latest recordings", link_href="/recordings", link_label="View all") %}
+    {# {% call ui.card("Latest recordings", link_href="/recordings", link_label="View all") %}
       <table>
         <tbody>
         {% for r in overview.latest %}
@@ -46,7 +46,7 @@
         {% endfor %}
         </tbody>
       </table>
-    {% endcall %}
+    {% endcall %} #}
   </div>
 {% else %}
   {% call ui.empty_state("No recordings yet") %}

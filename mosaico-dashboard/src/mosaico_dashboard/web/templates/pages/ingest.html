@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+
+{% block title %}Ingest · Mosaico Dashboard{% endblock %}
+
+{% block content %}
+{{ ui.page_header("Ingest", "Add ROS bags to Mosaico from the browser.") }}
+{% include "partials/ingest.html" %}
+{% endblock %}

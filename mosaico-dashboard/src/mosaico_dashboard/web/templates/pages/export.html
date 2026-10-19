@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+
+{% block title %}Export · Mosaico Dashboard{% endblock %}
+
+{% block content %}
+{{ ui.page_header("Export", "Download data from Mosaico.") }}
+{% include "partials/export.html" %}
+{% endblock %}

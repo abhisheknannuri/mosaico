@@ -10,12 +10,14 @@ def current_page_link(html: str) -> str:
 def test_sidebar_marks_current_page(client):
     assert current_page_link(client.get("/").text) == "/"
     assert current_page_link(client.get("/recordings").text) == "/recordings"
+    assert current_page_link(client.get("/ingest").text) == "/ingest"
+    assert current_page_link(client.get("/export").text) == "/export"
 
 
 def test_sidebar_has_icons_and_api_docs_link(client):
     html = client.get("/").text
 
-    assert html.count('class="lucide') >= 4
+    assert html.count('class="lucide') >= 6
     assert 'href="/docs"' in html
 
 

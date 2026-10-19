@@ -33,6 +33,12 @@
       <a href="/recordings" title="Recordings" {% if path.startswith("/recordings") %}aria-current="page"{% endif %}>
         {% include "icons/database.svg" %}<span>Recordings</span>
       </a>
+      <a href="/ingest" title="Ingest" {% if path.startswith("/ingest") %}aria-current="page"{% endif %}>
+        {% include "icons/file-up.svg" %}<span>Ingest</span>
+      </a>
+      <a href="/export" title="Export" {% if path.startswith("/export") %}aria-current="page"{% endif %}>
+        {% include "icons/file-down.svg" %}<span>Export</span>
+      </a>
       <a class="sidebar-bottom" href="/docs" title="API docs" hx-boost="false">
         {% include "icons/book-open.svg" %}<span>API docs</span>
       </a>

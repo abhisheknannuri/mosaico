@@ -12,7 +12,7 @@ def test_overview_shows_totals(client):
     assert "778 MB" in text
     assert "778,430,000 bytes" in text
     assert "across all recordings" in text
-    assert "Sensor streams" in text
+    assert "Streams" in text
 
 
 def test_overview_shows_storage_by_ontology_type(client):
@@ -22,13 +22,6 @@ def test_overview_shows_storage_by_ontology_type(client):
     assert '<td class="name">Image</td>' in text
     assert "<th>Ontology type</th>" in text
     assert 'title="76.8% of storage"' in text
-
-
-def test_overview_lists_latest_recordings(client):
-    text = client.get("/").text
-
-    assert "r2b_robotarm_0" in text
-    assert 'href="/recordings"' in text
 
 
 def test_overview_empty_catalog():
