@@ -74,6 +74,27 @@ services:
     command: |
       store-optimizer --time-interval 86400
 
+  # Dashboard database: ingestion and export jobs.
+  dashboard-db:
+    image: postgres:18
+    container_name: dashboard-db
+    profiles: ["development", "production"]
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: dashboard
+      POSTGRES_PASSWORD: dashboard
+      POSTGRES_DB: dashboard
+    networks:
+      - mosaico
+    volumes:
+      - dashboard-pg-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # Dashboard: API, HTML pages and static files.
   dashboard:
     image: mosaico-dashboard:local
@@ -86,6 +107,7 @@ services:
       DASHBOARD_HOST: 0.0.0.0
       DASHBOARD_MOSAICO_HOST: mosaicod-server
       DASHBOARD_MOSAICO_PORT: "6726"
+      DASHBOARD_DATABASE_URL: postgresql+psycopg://dashboard:dashboard@dashboard-db:5432/dashboard
       # Keep container-to-container gRPC off any HTTP proxy.
       NO_PROXY: mosaicod-server,localhost,127.0.0.1
       no_proxy: mosaicod-server,localhost,127.0.0.1
@@ -96,10 +118,13 @@ services:
     depends_on:
       mosaicod-server:
         condition: service_started
+      dashboard-db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   pg-data:
+  dashboard-pg-data:
 
 networks:
   mosaico:

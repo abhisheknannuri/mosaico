@@ -80,6 +80,8 @@ mosaico-dashboard/
 │   ├── logging_config.py     # logging setup (D-04)
 │   ├── domain/               # dashboard models and pure logic
 │   ├── gateway/              # access to mosaicod (the only SDK user)
+│   ├── db/                   # dashboard database: engine, tables, migrations/ (Alembic)
+│   ├── factories.py          # build gateway and engine from settings
 │   ├── services/             # use cases
 │   └── web/
 │       ├── health.py         # GET /healthz
@@ -191,16 +193,16 @@ flowchart TB
 ```
 
 Contracts (all must be `KEPT`):
-1. **Layers:** `web` → `services` → `gateway` → `domain`. A layer may import layers below it,
-   never above.
-2. **Only the gateway imports the Mosaico SDK.**
+1. **Layers:** `web` → `services` → (`gateway` | `db`) → `domain`. A layer may import layers
+   below it, never above; `gateway` and `db` don't import each other.
+2. **Only the gateway imports the Mosaico SDK** (`db` included in the check).
 3. **Domain and services are framework-agnostic:** no FastAPI/Starlette.
 
 ## 4. HTTP conventions
 
 | Kind | Where | URL | In OpenAPI (`/docs`) | Returns |
 |---|---|---|---|---|
-| Ops | `web/health.py` | `/healthz` (process alive), `/readyz` (mosaicod reachable, 200/503) | Yes, tag `ops` | JSON |
+| Ops | `web/health.py` | `/healthz` (process alive), `/readyz` (mosaicod and dashboard database reachable, 200/503, each reported) | Yes, tag `ops` | JSON |
 | JSON API | `web/api/` | `/api/v1/...` | Yes, tag per feature | JSON, Pydantic model as return type |
 | HTML pages | `web/pages/` | `/`, `/recordings`, ... | No (`include_in_schema=False`) | Full page, or fragment for htmx |
 

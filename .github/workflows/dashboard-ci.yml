@@ -31,8 +31,23 @@ jobs:
     defaults:
       run:
         working-directory: mosaico-dashboard
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: dashboard
+          POSTGRES_PASSWORD: dashboard
+          POSTGRES_DB: dashboard
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U dashboard"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
+      DASHBOARD_TEST_DATABASE_URL: postgresql+psycopg://dashboard:dashboard@localhost:5433/dashboard
     steps:
       - uses: actions/checkout@v6
       - name: Setup Python

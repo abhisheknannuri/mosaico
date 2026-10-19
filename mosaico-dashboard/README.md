@@ -30,9 +30,9 @@ This installs the dashboard dependencies into `.venv` and the Mosaico SDK from
 
 > `poetry sync` removes the SDK (it is not in `poetry.lock`). Run `dev_setup.sh` again after it.
 
-### 4. Start mosaicod
+### 4. Start mosaicod and the dashboard database
 
-From the repository root:
+From the repository root (starts mosaicod, its Postgres, and `dashboard-db` on port 5433):
 
 ```bash
 docker compose -f docker/devel/dashboard-compose.yml --profile development up -d
@@ -99,6 +99,20 @@ Integration tests need mosaicod running (development profile); without it they a
 
 ```bash
 poetry run pytest -m integration
+```
+
+Database tests need `dashboard-db` (development profile, or `DASHBOARD_TEST_DATABASE_URL`); they
+create and use a separate `dashboard_test` database, and are skipped without Postgres:
+
+```bash
+poetry run pytest -m database
+```
+
+The dashboard applies database migrations when it starts (`DASHBOARD_MIGRATE_ON_START`). To
+create a new migration after changing `db/tables.py`:
+
+```bash
+poetry run alembic revision --autogenerate -m "describe the change"
 ```
 
 Fix formatting and lint issues:

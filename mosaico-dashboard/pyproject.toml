@@ -21,6 +21,9 @@ jinja2 = "^3.1.4"
 pydantic = "^2.12.5"
 pydantic-settings = "^2.6.0"
 rich = ">=14.3.3,<16.0.0"
+sqlalchemy = ">=2.0,<3"
+psycopg = {version = ">=3.2,<4", extras = ["binary"]}
+alembic = ">=1.14,<2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.4.2"
@@ -53,19 +56,22 @@ venv = ".venv"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--import-mode=importlib -rs"
-markers = ["integration: needs a running mosaicod on localhost:6726"]
+markers = [
+    "integration: needs a running mosaicod on localhost:6726",
+    "database: needs a Postgres database (DASHBOARD_TEST_DATABASE_URL or dashboard-db on :5433)",
+]
 
 [tool.importlinter]
 root_package = "mosaico_dashboard"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Layers: web > services > gateway > domain"
+name = "Layers: web > services > (gateway | db) > domain"
 type = "layers"
 layers = [
     "mosaico_dashboard.web",
     "mosaico_dashboard.services",
-    "mosaico_dashboard.gateway",
+    "mosaico_dashboard.gateway | mosaico_dashboard.db",
     "mosaico_dashboard.domain",
 ]
 
@@ -76,6 +82,7 @@ source_modules = [
     "mosaico_dashboard.domain",
     "mosaico_dashboard.services",
     "mosaico_dashboard.web",
+    "mosaico_dashboard.db",
 ]
 forbidden_modules = ["mosaicolabs"]
 

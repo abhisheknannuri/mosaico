@@ -8,9 +8,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import Engine
 
+from mosaico_dashboard.factories import build_engine, build_gateway
 from mosaico_dashboard.gateway.base import MosaicoGateway
-from mosaico_dashboard.gateway.sdk import SdkGateway
 from mosaico_dashboard.logging_config import setup_logging
 from mosaico_dashboard.settings import Settings, get_settings
 from mosaico_dashboard.web import health
@@ -23,26 +24,20 @@ def route_name_as_operation_id(route: APIRoute) -> str:
     return route.name
 
 
-def sdk_gateway(settings: Settings) -> SdkGateway:
-    api_key = settings.mosaico_api_key
-    return SdkGateway(
-        host=settings.mosaico_host,
-        port=settings.mosaico_port,
-        api_key=api_key.get_secret_value() if api_key else None,
-        tls=settings.mosaico_tls,
-        tls_cert_path=settings.mosaico_tls_cert_path,
-        connect_timeout=settings.mosaico_connect_timeout,
-    )
-
-
-def create_app(settings: Settings, gateway: MosaicoGateway | None = None) -> FastAPI:
+def create_app(
+    settings: Settings,
+    gateway: MosaicoGateway | None = None,
+    engine: Engine | None = None,
+) -> FastAPI:
     setup_logging(settings.log_level, settings.log_format)
-    gateway = gateway or sdk_gateway(settings)
+    gateway = gateway or build_gateway(settings)
+    engine = engine or build_engine(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
         gateway.close()
+        engine.dispose()
 
     app = FastAPI(
         title="Mosaico Dashboard",
@@ -52,6 +47,7 @@ def create_app(settings: Settings, gateway: MosaicoGateway | None = None) -> Fas
         lifespan=lifespan,
     )
     app.state.gateway = gateway
+    app.state.engine = engine
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health.router)
     app.include_router(overview.router)

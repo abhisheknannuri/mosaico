@@ -2,14 +2,36 @@ def test_readyz_ok(client):
     response = client.get("/readyz")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "mosaicod_version": "0.8.0-dev"}
+    assert response.json() == {
+        "status": "ok",
+        "mosaicod": "ok",
+        "mosaicod_version": "0.8.0-dev",
+        "database": "ok",
+    }
 
 
-def test_readyz_unavailable(client_daemon_down):
+def test_readyz_unavailable_when_mosaicod_is_down(client_daemon_down):
     response = client_daemon_down.get("/readyz")
 
     assert response.status_code == 503
-    assert response.json() == {"status": "unavailable", "mosaicod_version": None}
+    assert response.json() == {
+        "status": "unavailable",
+        "mosaicod": "unavailable",
+        "mosaicod_version": None,
+        "database": "ok",
+    }
+
+
+def test_readyz_unavailable_when_the_database_is_down(client_database_down):
+    response = client_database_down.get("/readyz")
+
+    assert response.status_code == 503
+    assert response.json()["database"] == "unavailable"
+    assert response.json()["mosaicod"] == "ok"
+
+
+def test_pages_still_work_when_the_database_is_down(client_database_down):
+    assert client_database_down.get("/recordings").status_code == 200
 
 
 def test_readyz_documents_503(client):

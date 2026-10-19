@@ -352,8 +352,22 @@ hooks were already done in D-01.)
 - Not yet: the watchdog builds its own injector configs, so it doesn't forward a callback
   (D-29).
 
-### D-18 · Dashboard database · `todo`
-- Postgres service, SQLAlchemy, Alembic, `/readyz` checks it. First pass: D-20, D-21 (notes).
+### D-18 · Dashboard database · `done`
+- [x] Compose `dashboard-db` (Postgres 18, port 5433, volume `dashboard-pg-data`, both profiles);
+  the dashboard container gets `DASHBOARD_DATABASE_URL` and waits for it to be healthy.
+- [x] `db/`: engine (2 s connect timeout, `ping`), `tables.py` (SQLAlchemy Core metadata, no
+  tables yet), Alembic inside the package (`db/migrations/`, empty baseline `0d9a3c5e7b21`),
+  `migrate.upgrade_to_head` (Postgres advisory lock so web and worker can both migrate);
+  `alembic.ini` for creating revisions. `factories.py` builds gateway and engine.
+- [x] Settings `DASHBOARD_DATABASE_URL`, `DASHBOARD_MIGRATE_ON_START`; `run()` migrates on
+  start and continues with a warning if the database is down (catalog pages keep working);
+  `/readyz` reports `mosaicod` and `database` separately (503 if either is down).
+- [x] Layers `web → services → (gateway | db) → domain`; `db` may not import the SDK.
+- [x] Tests: web tests on in-memory SQLite, readiness with database down; `database` marker
+  tests on a fresh `dashboard_test` Postgres database (migrations, repeat, concurrent, ping);
+  CI gets a Postgres service. 100 tests. Live: migrated on start, `/readyz` all ok; with an
+  unreachable database the app starts, `/readyz` 503, `/recordings` 200.
+- Reused from the first pass (backup branch), limited to the database foundation.
 
 ### D-19 · Job queue and worker · `todo`
 - Jobs in Postgres, worker process running one job at a time, files in sequence.

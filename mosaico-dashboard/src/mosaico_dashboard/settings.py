@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: LogFormat = "plain"
 
+    # Dashboard database
+    database_url: str = (
+        "postgresql+psycopg://dashboard:dashboard@localhost:5433/dashboard"
+    )
+    migrate_on_start: bool = True
+
     # mosaicod connection
     mosaico_host: str = "localhost"
     mosaico_port: int = 6726
