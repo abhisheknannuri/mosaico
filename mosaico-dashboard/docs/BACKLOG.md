@@ -291,155 +291,106 @@ hooks were already done in D-01.)
 - [x] **AC:** tests for rendering rules, layout (active page, icons, collapse script), overview
   service and page; screenshots reviewed expanded and collapsed. 85 tests pass.
 
-### D-15 · Recording detail page · `todo`
-- `/recordings/{name}`: summary card (dates, duration, size, metadata as key/value list),
-  sensor streams table (friendly type, ROS topic path as secondary text, size, time range),
-  uploads (sessions) list with status (completed / open).
-- **AC:** web tests incl. 404 for unknown recording.
-
-### D-16 · Errors/notifications panel (lazy) · `todo`
-- Detail page loads `/recordings/{name}/notices` with `hx-trigger="load"`; shows ingestion errors
-  from sequence + topic notifications, or "No problems recorded".
-- **AC:** web tests for both cases.
-
-### D-17 · Error, empty and loading states · `todo`
-- Daemon down → friendly banner, not a traceback (exception handler for `GatewayUnavailable`).
-- Empty catalog → "No recordings yet. Here's how to add one."
-- htmx loading indicators (`hx-indicator`).
-- **AC:** web tests for each state.
-
 ---
 
-## Sprint 2: Dashboard database & catalog index
+> Order agreed 2026-10-19: **overview page → ingest → export → recording pages → index and
+> search → storage analytics → package**. One task at a time, reviewed before the next.
+> A first pass over the recording pages was undone; what it taught us is in
+> `plans/d16-d35-notes.md` (its numbers are the old ones, referenced below as "first pass").
+> The parked recording overview tab is on the local branch `AN/d15-recording-overview`.
 
-### D-18 · Dashboard Postgres in dev + DB layer · `todo`
-- Dev: separate **database** `dashboard` on the same Postgres server as mosaicod (container
-  `postgres` in `dashboard-compose.yml`), with a different database and user (init script);
-  see ADR-0004.
-- SQLAlchemy 2.0 (async, `psycopg` 3) engine/session in lifespan; `DASHBOARD_DATABASE_URL` setting.
-- Alembic initialised under `migrations/`.
-- **AC:** `alembic upgrade head` works on an empty DB; `/readyz` also checks the DB.
+## Phase 1: Overview page
 
-### D-19 · Index tables: `recording`, `sensor_stream`, `upload_session` · `todo`
-- Migration + repository functions (upsert, delete, get, list). `user_metadata` as JSONB + GIN index.
-- **AC:** repository tests against a test database (testcontainers, or a compose service in CI).
+### D-15 · Refine the overview page · `doing`
+- Today: KPI tiles, storage by sensor category, latest 5 recordings (D-14b).
+- Scope to agree together before starting: what an operator and a developer need to see at a
+  glance, and in what order. Done one step at a time:
+- [x] **D-15a Ontology tags instead of made-up categories** (ADR-0031): `vocabulary.py` deleted;
+  overview card "Storage by ontology type" (tag, streams, recordings, size, share bar); recordings
+  list chips show the tags. Numbers never wrap; dates/durations stay on one line. Tags are not
+  links yet: the recordings page has no tag filter (Phase 5). 92 tests.
 
-### D-20 · Sync service (pure logic) · `todo`
-- `services/sync.py`: diff daemon names vs DB → fetch new/changed via gateway (bounded
-  concurrency) → upsert; delete removed; record `synced_at`.
-- **AC:** unit tests with FakeGateway + in-memory/test DB: add, change, delete scenarios.
+## Phase 2: Ingest (new "Ingest" item in the sidebar)
 
-### D-21 · Worker process + periodic sync · `todo`
-- `src/mosaico_dashboard/worker.py` entrypoint (`python -m mosaico_dashboard.worker`); loop: sync every N s,
-  full re-verify hourly; graceful shutdown on SIGTERM.
-- **AC:** running worker + web locally, a newly ingested bag appears within N s.
+### D-16 · Dashboard database · `todo`
+- Needed for ingestion jobs. Postgres service, SQLAlchemy, Alembic, `/readyz` checks it.
+- First pass: D-20, D-21 (notes).
 
-### D-22 · List page reads from the index + freshness · `todo`
-- Switch `/recordings` to the DB; show "synced 40 s ago"; "Refresh" button triggers a targeted sync.
-- **AC:** web tests; list renders without any gateway calls.
+### D-17 · Job queue and worker · `todo`
+- Queue in Postgres (`SKIP LOCKED`, retries), worker process, compose service.
+- First pass: D-22 (notes).
 
-### D-23 · Live search, sort, pagination · `todo`
-- `hx-get` on input with `delay:300ms`, `hx-push-url` so URLs are shareable; keyset pagination;
-  sort by date/size/name. Works without JS as a normal GET form.
+### D-18 · Ingest page: sidebar item, upload form, staging · `todo`
+- File + recording name + optional metadata (simple fields, no SDK jargon); streamed to a
+  staging folder, size cap, extension check (`.mcap`, `.db3`, `.bag`).
+- Advanced settings hidden by default (ROS distro, topic filter).
 
-### D-24 · Filters: date range, sensor type, metadata key/value · `todo`
-- Metadata keys auto-discovered from the index (`jsonb_object_keys`) → dropdowns. No need to
-  know the metadata schema.
+### D-19 · Ingestion job: `RosbagInjector` in a subprocess (worker key with `write`) · `todo`
 
----
+### D-20 · Job status with SSE (queued → running → succeeded / failed) · `todo`
 
-## Sprint 3: Analytics on sensor data (the "useful to non-technical users" part)
+### D-21 · Job history, failure details, retry · `todo`
 
-### D-25 · Stream page + schema viewer · `todo`
-- `/recordings/{name}/streams/{topic}`: field list with data types and dimensions, from the topic's
-  Arrow schema (`ontology_schema`), shown as a readable table ("acceleration.x · float64").
+### D-22 · **Upstream**: SDK progress-callback hook · `todo`
+- `CONTRIBUTING.md`: Mosaico does **not** accept PRs from non-approved contributors. Open a
+  GitHub Discussion first; until then implement it on the fork only and show it as a proposal.
 
-### D-26 · Bucketed aggregation service (pure) · `todo`
-- `domain/aggregate.py`: given timestamps + values and N buckets → per bucket
-  `min, max, mean, std, count`. NumPy (or Polars) vectorised. This is what makes 200 Hz × hours
-  plottable.
-- **AC:** unit tests: exact values on small arrays; empty buckets; NaN handling; N ≫ points.
+### D-23 · Per-topic progress using the hook · `todo`
 
-### D-27 · Preview API endpoint · `todo`
-- `GET /api/v1/recordings/{name}/streams/{topic}/series?field=…&from=…&to=…&buckets=800` →
-  JSON from D-26, using `get_data_streamer(start_ns, end_ns)` through the gateway (thread,
-  timeout, streamer always closed). Short in-memory cache (data is immutable).
-- **AC:** documented in OpenAPI; integration test returns ≤ `buckets` rows.
+### D-24 · Staging cleanup · `todo`
 
-### D-28 · Plot island: mean line, ±std band, min/max envelope, hover · `todo`
-- One small JS module using **uPlot** (vendored, pinned): mean line, shaded mean±std band,
-  lighter min-max envelope, hover tooltip showing time + min/mean/max/std/count. Drag to zoom →
-  re-fetch the window at full resolution.
-- Field picker (htmx swaps the plot container).
+## Phase 3: Export
 
-### D-29 · Whole-stream summary statistics · `todo`
-- Worker computes per numeric field: `count, min, max, mean, std, null/NaN count` over the whole
-  stream (streaming, chunk by chunk, Welford's algorithm for mean/std); stored in a new
-  `stream_field_stats` table; recomputed only when the stream changes.
-- Stream page shows a stats table; overall min/max drawn as horizontal reference lines on the plot.
-- Why the worker: mosaicod keeps per-chunk min/max only for query pruning, not exposed by the SDK,
-  and no mean/std at all (see ADR-0004).
+### D-25 · Export a stream (or a time window) as CSV / Parquet · `todo`
+- Where it lives in the UI (own sidebar page or per recording / stream): agree first.
+- First pass: D-33 (notes).
 
-### D-30 · Coverage timeline on recording page · `todo`
-- One bar per stream across the recording's time span (from `data_start/data_end`).
-- Gaps **inside** a stream (e.g. GPS 20–35 s in `demo_warehouse_run_02`) don't change
-  `data_start/data_end`; showing them needs message timestamps (read via the data streamer,
-  bucketed like D-26).
+### D-26 · Download a recording as MCAP (SDK `ROSSequenceExtractor`) · `todo`
+- First pass: D-34 (notes).
 
-### D-31 · Image thumbnail strip · `todo`
-- K evenly spaced frames for `image` streams, small JPEGs, cached on disk.
+## Phase 4: Recording pages (plan: `plans/recording-pages.md`)
 
-### D-32 · GPS track · `todo`
-- Track from `gps` streams; SVG fallback, optional map tiles via configurable URL.
+### D-27 · Recording overview tab + row links · `todo`
+- Parked on branch `AN/d15-recording-overview`; review and bring back.
+### D-28 · Streams tab (messages, rate) · `todo` — first pass: D-16
+### D-29 · Coverage timeline (start/end) · `todo` — first pass: D-17
+### D-30 · Stream inspector v1 · `todo` — first pass: D-18
+### D-31 · Notifications and error states · `todo` — first pass: D-19
+### D-32 · ECharts and `charts.js` · `todo` — first pass: D-23
+### D-33 · Cache folder and `/media` · `todo` — first pass: D-24
+### D-34 · Aggregation (pure) · `todo` — first pass: D-25
+### D-35 · Field statistics + distribution chart · `todo` — first pass: D-26
+### D-36 · Units and field names · `todo` — first pass: D-26b
+### D-37 · Time-series chart · `todo` — first pass: D-27
+### D-38 · Camera frames · `todo` — first pass: D-28
+### D-39 · GPS track · `todo` — first pass: D-29
+### D-40 · Coverage gaps · `todo` — first pass: D-30
+### D-41 · Video clips · `todo` — first pass: D-31
+### D-42 · Point-cloud preview · `todo` — first pass: D-32
+### D-43 · Shared time cursor (plots ↔ frames) · `todo` — first pass: D-35
 
----
+## Phase 5: Catalog index and search
 
-## Sprint 4: Storage analytics
+### D-44 · Index tables + sync job · `todo`
+### D-45 · Lists read from the index; freshness indicator · `todo`
+### D-46 · Live search, sort, pagination (`hx-push-url`) · `todo`
+### D-47 · Filters: date range, sensor type, metadata key/value · `todo`
 
-### D-33 · `storage_snapshot_daily` table + daily snapshot job · `todo`
-### D-34 · KPI cards: total size, # recordings, 30-day growth · `todo`
-### D-35 · Growth chart (stacked by sensor type) · `todo`
-### D-36 · Breakdown by metadata key (e.g. project) + top-N largest recordings · `todo`
-### D-37 · Backfill script for demo history (points labelled "backfilled" in the UI) · `todo`
+## Phase 6: Storage analytics
 
----
+### D-48 · Daily storage snapshots (+ demo backfill, labelled) · `todo`
+### D-49 · Storage page: KPIs, growth chart by sensor type · `todo`
+### D-50 · Breakdown by metadata key + largest recordings · `todo`
 
-## Sprint 5: Ingestion (upload a ROS bag from the browser)
+## Phase 7: Package and present
 
-### D-38 · `ingestion_job` + `ingestion_event` tables; Postgres queue (`SKIP LOCKED`) · `todo`
-### D-39 · Upload form: file + recording name + optional metadata (simple fields, no SDK jargon) · `todo`
-- Streamed to a staging folder, size cap, extension check (`.mcap`, `.db3`, `.bag`).
-- **Advanced settings hidden by default** (ROS distro, topic filter); SDK-level knobs like adapter
-  overrides stay out of the UI (see BUILD_PLAN §3.4).
-### D-40 · Job runner: subprocess per job calling `RosbagInjector` (worker key with `write`) · `todo`
-### D-41 · Job status page with SSE (queued → running → succeeded/failed) · `todo`
-### D-42 · Job history table + failure details + retry · `todo`
-### D-43 · **Upstream**: SDK progress-callback hook · `todo`
-- `CONTRIBUTING.md`: Mosaico does **not** accept PRs from non-approved contributors. Order:
-  open a GitHub Discussion describing the use case → (if they agree / approve you as a
-  contributor via foss@mosaico.dev) issue → small PR. Until then, implement it on the fork
-  only and show it in the demo as a proposal.
-### D-44 · Per-topic progress in the UI using the hook · `todo`
-### D-45 · Staging cleanup sweeper · `todo`
-
----
-
-## Sprint 6: Data export
-
-### D-46 · Export a stream window as CSV / Parquet (streamed, size-capped) · `todo`
-### D-47 · "Download" buttons on stream page and plot selection · `todo`
-
----
-
-## Sprint 7: Package & present
-
-### D-48 · Finish `dashboard-compose.yml`: add dashboard DB init, worker service, `demo` seed profile · `todo`
-### D-49 · Integration test in CI against the compose stack · `todo`
+### D-51 · Compose: worker, dashboard-db, `demo` seed profile · `todo`
+### D-52 · Integration tests in CI against the compose stack · `todo`
 - Start mosaicod (+ demo data) in CI and add a strict switch (e.g. `DASHBOARD_REQUIRE_MOSAICOD=1`)
   that turns the integration-test skip into a failure when mosaicod is unreachable.
-### D-50 · README with screenshots, architecture doc final pass, ADR review · `todo`
-### D-51 · 3-minute demo video · `todo`
-### D-52 · (Optional) public read-only demo deployment · `todo`
+### D-53 · README with screenshots, architecture final pass · `todo`
+### D-54 · 3-minute demo video · `todo`
+### D-55 · (Optional) public read-only demo deployment · `todo`
 
 ---
 

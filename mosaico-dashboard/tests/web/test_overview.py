@@ -15,11 +15,13 @@ def test_overview_shows_totals(client):
     assert "Sensor streams" in text
 
 
-def test_overview_shows_storage_by_sensor_type(client):
+def test_overview_shows_storage_by_ontology_type(client):
     text = client.get("/").text
 
-    assert 'class="bar-list"' in text
-    assert "Camera" in text
+    assert "Storage by ontology type" in text
+    assert '<td class="name">Image</td>' in text
+    assert "<th>Ontology type</th>" in text
+    assert 'title="76.8% of storage"' in text
 
 
 def test_overview_lists_latest_recordings(client):

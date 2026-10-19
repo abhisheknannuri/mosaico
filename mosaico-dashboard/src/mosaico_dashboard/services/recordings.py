@@ -3,7 +3,6 @@
 from datetime import datetime, timezone
 
 from mosaico_dashboard.domain.models import Recording, RecordingSummary
-from mosaico_dashboard.domain.vocabulary import sensor_type
 from mosaico_dashboard.gateway.base import MosaicoGateway
 
 _OLDEST = datetime.min.replace(tzinfo=timezone.utc)
@@ -19,13 +18,13 @@ def list_recording_summaries(gateway: MosaicoGateway) -> list[RecordingSummary]:
     summaries = [
         RecordingSummary(
             recording=recording,
-            sensor_categories=_sensor_categories(gateway, recording),
+            ontology_tags=_ontology_tags(gateway, recording),
         )
         for recording in gateway.list_recordings()
     ]
     return sorted(summaries, key=lambda s: recorded_at(s.recording), reverse=True)
 
 
-def _sensor_categories(gateway: MosaicoGateway, recording: Recording) -> list[str]:
+def _ontology_tags(gateway: MosaicoGateway, recording: Recording) -> list[str]:
     streams = gateway.list_streams(recording.name)
-    return sorted({sensor_type(stream.ontology_tag).category for stream in streams})
+    return sorted({stream.ontology_tag for stream in streams})

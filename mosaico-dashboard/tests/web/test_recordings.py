@@ -14,14 +14,14 @@ def test_recordings_page_lists_recordings(client):
     assert "r2b_robotarm_0" in response.text
 
 
-def test_rows_show_formatted_values_and_sensor_chips(client):
+def test_rows_show_formatted_values_and_ontology_chips(client):
     text = client.get("/recordings").text
 
     assert "10 May 2024, 00:27 UTC" in text
     assert "20.5 s" in text
     assert "598 MB" in text
     assert "598,200,000 bytes" in text
-    assert '<span class="chip">Camera</span>' in text
+    assert '<span class="chip">CompressedImage</span>' in text
 
 
 def test_htmx_request_returns_table_only(client):

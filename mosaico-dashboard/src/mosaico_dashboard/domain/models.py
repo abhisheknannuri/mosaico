@@ -53,14 +53,18 @@ class Recording(DomainModel):
 
 
 class RecordingSummary(DomainModel):
-    """A recording with the sensor categories of its streams, for list views."""
+    """A recording with the ontology tags of its streams, for list views."""
 
     recording: Recording
-    sensor_categories: list[str]
+    ontology_tags: list[str]
 
 
-class CategoryStorage(DomainModel):
-    category: str
+class OntologyStorage(DomainModel):
+    """Storage used by one ontology tag (e.g. 'IMU') across the catalog."""
+
+    ontology_tag: str
+    stream_count: int
+    recording_count: int
     size_bytes: int
     share: float
 
@@ -72,7 +76,7 @@ class Overview(DomainModel):
     stream_count: int
     total_bytes: int
     recorded_duration: timedelta
-    storage_by_category: list[CategoryStorage]
+    storage_by_ontology: list[OntologyStorage]
     latest: list[Recording]
 
 

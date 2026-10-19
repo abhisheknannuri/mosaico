@@ -7,7 +7,7 @@
         <th>Recording</th>
         <th>Recorded</th>
         <th>Duration</th>
-        <th>Sensors</th>
+        <th>Ontology types</th>
         <th class="num">Streams</th>
         <th class="num">Size</th>
       </tr>
@@ -17,9 +17,9 @@
       {% set r = summary.recording %}
       <tr>
         <td class="name">{{ r.name }}</td>
-        <td>{{ r.data_start | datetime }}</td>
-        <td>{{ r.duration | duration }}</td>
-        <td>{{ ui.chips(summary.sensor_categories) }}</td>
+        <td class="nowrap">{{ r.data_start | datetime }}</td>
+        <td class="nowrap">{{ r.duration | duration }}</td>
+        <td>{{ ui.chips(summary.ontology_tags) }}</td>
         <td class="num">{{ r.stream_count }}</td>
         <td class="num" title="{{ r.size_bytes | bytes_exact }}">{{ r.size_bytes | bytes }}</td>
       </tr>

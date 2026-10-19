@@ -110,7 +110,7 @@ Folders are created by the task that first puts code in them.
 
 | Folder | Contains | May import | Must not import |
 |---|---|---|---|
-| `domain/` | Dashboard models (`Recording`, `SensorStream`, …), formatting, vocabulary, aggregation | stdlib, pydantic, numpy | anything internal, FastAPI, SDK, database |
+| `domain/` | Dashboard models (`Recording`, `SensorStream`, …), formatting, aggregation | stdlib, pydantic, numpy | anything internal, FastAPI, SDK, database |
 | `gateway/` | `MosaicoGateway` interface, SDK implementation, fake for tests. Converts SDK objects into domain models, runs blocking SDK calls in threads | `domain`, `mosaicolabs` | `services`, `web` |
 | `services/` | Use cases ("list recordings", "summarise a stream"). Used by web routes and, later, the worker | `domain`, `gateway` (and later `db`) | `web`, FastAPI, SDK |
 | `web/pages/` | Routes returning HTML: full page, or fragment for htmx requests | everything below, FastAPI, Jinja2 | SDK |
@@ -126,7 +126,7 @@ logs to one console handler.
 | Mosaico (SDK) | Dashboard model | Shown as |
 |---|---|---|
 | Sequence | `Recording` | Recording |
-| Topic | `SensorStream` | Sensor stream, labelled by `vocabulary.sensor_type(ontology_tag)` |
+| Topic | `SensorStream` | Sensor stream, labelled by its ontology tag (`IMU`, `CompressedImage`, …) as is (ADR-0031) |
 | Session | `Upload` | Upload |
 
 - Times in the domain are UTC `datetime`; the gateway converts the SDK's nanoseconds.

@@ -9,12 +9,29 @@
   </div>
 
   <div class="cards">
-    {% call ui.card("Storage by sensor type") %}
-      <ul class="bar-list">
-        {% for item in overview.storage_by_category %}
-          {{ ui.bar(item.category, item.size_bytes | bytes, item.share, item.size_bytes | bytes_exact) }}
+    {% call ui.card("Storage by ontology type") %}
+      <table class="ontology-storage">
+        <thead>
+          <tr>
+            <th>Ontology type</th>
+            <th class="num">Streams</th>
+            <th class="num">Recordings</th>
+            <th class="num">Size</th>
+            <th aria-label="Share of storage"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in overview.storage_by_ontology %}
+          <tr>
+            <td class="name">{{ item.ontology_tag }}</td>
+            <td class="num">{{ item.stream_count }}</td>
+            <td class="num">{{ item.recording_count }}</td>
+            <td class="num" title="{{ item.size_bytes | bytes_exact }}">{{ item.size_bytes | bytes }}</td>
+            <td class="share">{{ ui.share_bar(item.share, (item.share | percent) ~ " of storage") }}</td>
+          </tr>
         {% endfor %}
-      </ul>
+        </tbody>
+      </table>
     {% endcall %}
 
     {% call ui.card("Latest recordings", link_href="/recordings", link_label="View all") %}

@@ -342,6 +342,11 @@ th.num,
 td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+td.nowrap {
+  white-space: nowrap;
 }
 
 td.name {
@@ -398,6 +403,15 @@ td.name {
 
 .bar-share {
   color: var(--text-dim);
+}
+
+/* storage by ontology type (overview) */
+table.ontology-storage td.share {
+  width: 30%;
+}
+
+table.ontology-storage .bar-track {
+  display: block;
 }
 
 /* key_values */

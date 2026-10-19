@@ -46,13 +46,15 @@ Inside the partial, in this order when present: `.stats` row → `.cards` grid �
 | `page_header(title, subtitle, back_href, back_label)` | Top of every page | `ui.page_header("Recordings", "Newest first.")` |
 | `stat(label, value, hint, title)` | A single number; `hint` says what it means, `title` is the hover text (exact value); group in `<div class="stats">` | `ui.stat("Stored", t \| bytes, "compressed, in mosaicod", t \| bytes_exact)` |
 | `card(title, id, link_href, link_label)` | A panel around any content; group in `<div class="cards">` for a 2-column grid | `{% call ui.card("Latest") %}…{% endcall %}` |
-| `chips(items)` | Short labels (sensor categories) | `ui.chips(summary.sensor_categories)` |
-| `bar(label, value, share, title)` | One row of a `<ul class="bar-list">`: label, bar, value, percentage; share 0–1 | storage by category |
+| `chips(items)` | Short labels (ontology tags) | `ui.chips(summary.ontology_tags)` |
+| `share_bar(share, title)` | A bar filled to `share` (0–1), e.g. in a table cell | storage by ontology type |
+| `bar(label, value, share, title)` | One row of a `<ul class="bar-list">`: label, bar, value, percentage; share 0–1 | — |
 | `key_values(mapping)` | Metadata, properties | `ui.key_values(recording.metadata)` |
 | `empty_state(title)` | Nothing to show yet; body via `{% call %}` | no recordings |
 
 Plain `<table>` is styled globally; add `class="num"` to numeric `th`/`td` (right-aligned, tabular
-digits) and `class="name"` to the identifying column.
+digits, never wrapped), `class="name"` to the identifying column and `class="nowrap"` to short
+text that must stay on one line (dates, durations).
 
 ## Formatting
 

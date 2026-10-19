@@ -7,17 +7,19 @@ from mosaico_dashboard.gateway.fake import (
 from mosaico_dashboard.services.recordings import list_recording_summaries
 
 
-def test_summaries_have_sensor_categories():
+def test_summaries_have_ontology_tags():
     summaries = {s.recording.name: s for s in list_recording_summaries(FakeGateway())}
 
-    assert summaries["r2b_galileo2_0"].sensor_categories == [
-        "Camera",
-        "Motion",
-        "Other",
-        "Robot state",
-        "Transform",
+    assert summaries["r2b_galileo2_0"].ontology_tags == [
+        "BatteryState",
+        "CameraInfo",
+        "CompressedImage",
+        "EncoderTicks",
+        "FrameTransform",
+        "IMU",
+        "MotionState",
     ]
-    assert summaries["r2b_robotarm_0"].sensor_categories == ["Camera", "Robot state"]
+    assert summaries["r2b_robotarm_0"].ontology_tags == ["Image", "RobotJoint"]
 
 
 def test_newest_recorded_first_and_undated_last():
