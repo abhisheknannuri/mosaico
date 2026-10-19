@@ -451,7 +451,7 @@ class RosbagInjector:
 
                 with self._open_or_get_loader() as ros_loader:
                     # Setup Progress UI
-                    ui = ProgressManager(ros_loader)
+                    ui = ProgressManager(ros_loader, self._cfg.progress_callback)
                     ui.setup()
                     # Handle sequence creation or update based on existence and user preference
                     # NOTE: `update_if_exists` covers two scenarios: a ROS recording split across
@@ -489,6 +489,7 @@ class RosbagInjector:
                         with Live(ui.progress, console=self._console):
                             for ros_msg, exc in ros_loader:
                                 self._process_message(ros_msg, exc, seq_writer, ui)
+                            ui.finish()
 
                 if seq_writer.session_status == SessionStatus.Error:
                     raise RuntimeError(

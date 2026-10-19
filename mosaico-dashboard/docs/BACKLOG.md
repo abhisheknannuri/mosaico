@@ -334,12 +334,23 @@ hooks were already done in D-01.)
 - Open: zero accepted topics because of unknown message types (not a filter) wasn't tested;
   needs a bag with custom types (D-30).
 
-### D-17 · SDK (fork): progress callback · `todo`
-- `ProgressManager` (`bridges/ui.py`) is the one place all progress goes through: both
-  injectors, both sequence extractors, and the watchdog (it calls `injector.run()`). Add an
-  optional callback (topics and totals known, topic advanced, topic status changed, done),
-  passed through the injector / extractor configs. Rich bars stay the default.
-- Tests in the SDK.
+### D-17 · SDK (fork): progress callback · `done`
+- [x] `ProgressManager(loader, callback=None)` (`bridges/ui.py`): the callback gets a
+  `ProgressSnapshot` (per topic: done, total, last status; overall done / total; `finished`)
+  after setup, at most every 0.5 s (`PROGRESS_CALLBACK_INTERVAL_S`) while messages are
+  processed, and once when all are processed (`ui.finish()` after the loop). A failing
+  callback is logged, the run continues. Rich bars unchanged.
+- [x] `progress_callback` field on `InjectionConfigBase` and `ExtractorConfig`, passed at the
+  three places a `ProgressManager` is created (both injectors, the extractors' base). SDK
+  `CHANGELOG.md` (Unreleased).
+- [x] SDK tests `src/testing/unit/bridges/test_progress_callback.py` (9); SDK unit suite
+  passes (3,084). Tests caught a bug fixed before review: rejected-topic statuses notified
+  before totals existed (first report said total 0).
+- [x] Live (`temp/progress_callback.py`): export of `demo_warehouse_run_02` and ingestion of
+  `demo_field_test_01` (into the test recording `d17_progress_test`), reports every ~0.5 s,
+  final one at 100 %.
+- Not yet: the watchdog builds its own injector configs, so it doesn't forward a callback
+  (D-29).
 
 ### D-18 · Dashboard database · `todo`
 - Postgres service, SQLAlchemy, Alembic, `/readyz` checks it. First pass: D-20, D-21 (notes).

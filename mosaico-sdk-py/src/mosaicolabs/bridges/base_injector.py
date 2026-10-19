@@ -30,6 +30,7 @@ from mosaicolabs.enum import (
 )
 
 from .topic_status import TopicStatus
+from .ui import ProgressCallback
 
 _DEFAULT_TOPIC_ON_ERROR = TopicLevelErrorPolicy.Raise
 _DEFAULT_SESSION_ON_ERROR = SessionLevelErrorPolicy.Report
@@ -148,6 +149,8 @@ class InjectionConfigBase:
         enable_tls (bool): Enable the TLS communication protocol. Defaults to False.
         dry_run (bool): If `True`, resolves and reports which topics would be ingested without
             connecting to the Mosaico server or writing any data. Default: False.
+        progress_callback (Optional[ProgressCallback]): Also receives the upload progress as
+            data (`ProgressSnapshot`), next to the terminal progress bars. Default: None
     """
 
     file_path: Path
@@ -274,4 +277,11 @@ class InjectionConfigBase:
     If `True`, resolves and reports which topics would be ingested (and with which adapter),
     which topics would be rejected (and why), and which `topic_metadata` entries would be
     unused, without connecting to the Mosaico server or writing any data. Default: False.
+    """
+
+    progress_callback: Optional[ProgressCallback] = None
+    """
+    Also receives the upload progress as data (`ProgressSnapshot`): after setup, at most
+    every `PROGRESS_CALLBACK_INTERVAL_S` while messages are processed, and once when every
+    message has been processed. The terminal progress bars are unchanged. Default: None.
     """

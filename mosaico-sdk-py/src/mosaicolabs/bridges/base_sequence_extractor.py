@@ -29,7 +29,7 @@ from typing import Any, Optional
 from rich.live import Live
 
 from mosaicolabs import Message, MosaicoClient
-from mosaicolabs.bridges.ui import ProgressManager
+from mosaicolabs.bridges.ui import ProgressCallback, ProgressManager
 from mosaicolabs.logging_config import get_logger, setup_sdk_logging
 
 from .loader_base import MosaicoLoader
@@ -73,6 +73,9 @@ class ExtractorConfig:
         dry_run (bool): If True, report which topics would be extracted or rejected and
             whether the output path already exists, without writing or deleting any file.
             Defaults to False.
+        progress_callback (Optional[ProgressCallback]): Also receives the extraction
+            progress as data (`ProgressSnapshot`), next to the terminal progress bars.
+            Defaults to None.
     """
 
     saving_path: Path
@@ -148,6 +151,13 @@ class ExtractorConfig:
     (and with which adapter/native message type), which topics would be rejected (and why),
     and whether the output path already exists, without writing any file and without
     deleting an existing output path even if `overwrite=True`. Default: False.
+    """
+
+    progress_callback: Optional[ProgressCallback] = None
+    """
+    Also receives the extraction progress as data (`ProgressSnapshot`): after setup, at most
+    every `PROGRESS_CALLBACK_INTERVAL_S` while messages are processed, and once when every
+    message has been processed. The terminal progress bars are unchanged. Default: None.
     """
 
     def __post_init__(self):
@@ -469,7 +479,7 @@ class SequenceExtractor(ABC):
 
                 with self._open_mosaicoloader(mclient) as ms_loader:
                     with self._open_writer(saving_path) as writer:
-                        ui = ProgressManager(ms_loader)
+                        ui = ProgressManager(ms_loader, self.cfg.progress_callback)
                         ui.setup()
 
                         with Live(ui.progress, console=self.console):
@@ -477,6 +487,7 @@ class SequenceExtractor(ABC):
                                 self._process_message(
                                     writer, ms_loader, t_name, ms_msg, ui
                                 )
+                            ui.finish()
 
         except KeyboardInterrupt:
             logger.warning("Operation cancelled by user. Shutting down...")

@@ -6,6 +6,7 @@
 ### Features
 
 - **Dry run as data**: `RosbagInjector.dry_run()` and `MCAPInjector.dry_run()` return a `DryRunReport` (accepted topics with adapter and message count, rejected topics with their `TopicStatus`, unused `topic_metadata` keys) without connecting to the server, so applications can use the result instead of reading the printed table. `run()` with `dry_run=True` prints the same table as before.
+- **Progress as data**: `ProgressManager` accepts an optional `ProgressCallback`, set through the new `progress_callback` field of the injector configs (`ROSInjectionConfig`, `MCAPInjectionConfig`) and extractor configs (`ROSExtractorConfig`, `MCAPExtractorConfig`). It receives a `ProgressSnapshot` (per topic: done, total, last status; overall done/total; finished) after setup, at most every 0.5 s while messages are processed, and once when every message is processed. The terminal progress bars are unchanged; an exception in the callback is logged and does not stop the run.
 
 ## [0.7.0] - 2026-10-08
 

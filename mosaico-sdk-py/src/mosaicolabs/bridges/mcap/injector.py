@@ -343,7 +343,7 @@ class MCAPInjector:
 
                 with self._open_or_get_loader() as mcap_loader:
                     # Setup Progress UI
-                    ui = ProgressManager(mcap_loader)
+                    ui = ProgressManager(mcap_loader, self._cfg.progress_callback)
                     ui.setup()
 
                     # Handle sequence creation or update based on existence and user preference
@@ -381,6 +381,7 @@ class MCAPInjector:
                         with Live(ui.progress, console=self._console):
                             for mcap_msg, exc in mcap_loader:
                                 self._process_message(mcap_msg, exc, seq_writer, ui)
+                            ui.finish()
 
                 if seq_writer.session_status == SessionStatus.Error:
                     raise RuntimeError(
