@@ -293,8 +293,8 @@ hooks were already done in D-01.)
 
 ---
 
-> Order agreed 2026-10-19: **overview page → ingest → export → recording pages → index and
-> search → storage analytics → package**. One task at a time, reviewed before the next.
+> Order agreed 2026-10-19: **overview page → ingest → export → ingest and export extras →
+> recording pages → index and search → storage analytics → package**. One task at a time, reviewed before the next.
 > A first pass over the recording pages was undone; what it taught us is in
 > `plans/d16-d35-notes.md` (its numbers are the old ones, referenced below as "first pass").
 > The parked recording overview tab is on the local branch `AN/d15-recording-overview`.
@@ -310,87 +310,140 @@ hooks were already done in D-01.)
   list chips show the tags. Numbers never wrap; dates/durations stay on one line. Tags are not
   links yet: the recordings page has no tag filter (Phase 5). 92 tests.
 
-## Phase 2: Ingest (new "Ingest" item in the sidebar)
+## Phase 2: Ingest (production grade)
 
-### D-16 · Dashboard database · `todo`
-- Needed for ingestion jobs. Postgres service, SQLAlchemy, Alembic, `/readyz` checks it.
-- First pass: D-20, D-21 (notes).
+> Agreed 2026-10-19: files are on the same machine as the dashboard (no browser upload). One
+> ingestion at a time, run by the background worker, tracked in the dashboard database so a
+> page refresh or a dashboard restart doesn't lose it. The SDK changes are made in our fork
+> and proposed upstream later (D-33).
 
-### D-17 · Job queue and worker · `todo`
-- Queue in Postgres (`SKIP LOCKED`, retries), worker process, compose service.
+### D-16 · SDK (fork): dry run returns its result · `done`
+- [x] `RosbagInjector.dry_run()` and `MCAPInjector.dry_run()` return a `DryRunReport`
+  (`bridges/base_injector.py`): accepted topics (adapter, message count), rejected topics
+  (`TopicStatus`), unused `topic_metadata` keys. `run()` with `dry_run=True` prints the same
+  table as before, now built from the report. SDK `CHANGELOG.md` (Unreleased).
+- [x] SDK tests `src/testing/unit/bridges/test_dry_run.py` (both injectors, fake loader):
+  7 tests; SDK unit suite passes (3,075; `unit/cli` needs the optional `typer`).
+- [x] Facts checked live (scripts in `temp/`):
+  - rejected topics don't fail a real run, they are skipped;
+  - no topic matching the filter: the loader raises `RuntimeError: Unable to initialize
+    ROSLoader: No connections matched criteria…` in `dry_run()` and `run()`, before
+    connecting; nothing is created in mosaicod;
+  - existing name: `run()` raises `ArrowException: … already exists` when creating the
+    sequence, nothing is written; `dry_run()` doesn't detect it (no server connection).
+- Open: zero accepted topics because of unknown message types (not a filter) wasn't tested;
+  needs a bag with custom types (D-30).
+
+### D-17 · SDK (fork): progress callback · `todo`
+- `ProgressManager` (`bridges/ui.py`) is the one place all progress goes through: both
+  injectors, both sequence extractors, and the watchdog (it calls `injector.run()`). Add an
+  optional callback (topics and totals known, topic advanced, topic status changed, done),
+  passed through the injector / extractor configs. Rich bars stay the default.
+- Tests in the SDK.
+
+### D-18 · Dashboard database · `todo`
+- Postgres service, SQLAlchemy, Alembic, `/readyz` checks it. First pass: D-20, D-21 (notes).
+
+### D-19 · Job queue and worker · `todo`
+- Jobs in Postgres, worker process running one job at a time, files in sequence.
+- The injector runs in a child process of the worker, so Cancel = Ctrl-C (SIGINT →
+  `InjectionStatus.CANCELLED`) and the SDK's console/logging set-up stays out of the worker.
 - First pass: D-22 (notes).
 
-### D-18 · Ingest page: sidebar item, upload form, staging · `todo`
-- File + recording name + optional metadata (simple fields, no SDK jargon); streamed to a
-  staging folder, size cap, extension check (`.mcap`, `.db3`, `.bag`).
-- Advanced settings hidden by default (ROS distro, topic filter).
+### D-20 · Ingest page: folder, file list, one file · `todo`
+- Setting `DASHBOARD_INGEST_DIR` (absolute path, from `.env`); the page lists `.mcap`, `.db3`,
+  `.bag` files in it (size, modified) with a tick when a recording with the file's name is
+  already in Mosaico.
+- Select one file → recording name (editable) + optional metadata.
+- To decide: default name rule (file name without extension, or the watchdog's rule
+  `run_01/drive.mcap` → `run_01-drive__mcap` so manual and watchdog agree); page layout (files
+  on one side, options for the selected file on the other).
 
-### D-19 · Ingestion job: `RosbagInjector` in a subprocess (worker key with `write`) · `todo`
+### D-21 · Dry run step · `todo`
+- Runs the injector with `dry_run=True` on the chosen config (D-16 result) and shows it:
+  no accepted topic → stop with the reasons; some rejected → warn (the recording would miss
+  those topics), user confirms; all accepted → continue.
 
-### D-20 · Job status with SSE (queued → running → succeeded / failed) · `todo`
+### D-22 · Ingestion run, live progress, cancel · `todo`
+- Start → job in the worker → progress per topic and overall through SSE (from D-17), Cancel
+  button, error with a hint for known cases (name already exists → rename or append; mosaicod
+  unreachable; API key without `write`), the SDK message otherwise.
+- User can leave the page: indicator in the top bar ("Ingesting … 42 %") links back; refresh
+  or restart reconnects to the job.
 
-### D-21 · Job history, failure details, retry · `todo`
+### D-23 · Ingestion history · `todo`
+- Past runs from the database: file, recording, started, duration, result, error.
 
-### D-22 · **Upstream**: SDK progress-callback hook · `todo`
-- `CONTRIBUTING.md`: Mosaico does **not** accept PRs from non-approved contributors. Open a
-  GitHub Discussion first; until then implement it on the fork only and show it as a proposal.
+### D-24 · Basic and advanced options · `todo`
+- Defaults from settings; per run: topic selection (from the dry run), ROS distro, keep or
+  delete partial data on failure (`on_error`), append to an existing recording
+  (`update_if_exists`).
 
-### D-23 · Per-topic progress using the hook · `todo`
+## Phase 3: Export (production grade)
 
-### D-24 · Staging cleanup · `todo`
+### D-25 · Export page: a recording as a ROS bag · `todo`
+- SDK `ROSSequenceExtractor` in the worker (MCAP / db3 / ROS 1 bag), progress through SSE
+  (D-17), result in an export folder setting. First pass: D-34 (notes).
 
-## Phase 3: Export
-
-### D-25 · Export a stream (or a time window) as CSV / Parquet · `todo`
-- Where it lives in the UI (own sidebar page or per recording / stream): agree first.
+### D-26 · Export a stream (or a time window) as CSV / Parquet · `todo`
 - First pass: D-33 (notes).
 
-### D-26 · Download a recording as MCAP (SDK `ROSSequenceExtractor`) · `todo`
-- First pass: D-34 (notes).
+## Phase 4: Ingest and export, later
 
-## Phase 4: Recording pages (plan: `plans/recording-pages.md`)
+### D-27 · Several files in one go (in sequence) · `todo`
+### D-28 · Change the ingest folder from the UI (without restarting) · `todo`
+### D-29 · Watchdog mode: watch the ingest folder in the worker (SDK `Watchdog`, daemon) · `todo`
+- Keeps running while the user is on other pages; its `.already_loaded.txt` /
+  `.quarantine_file.txt` live in the watched folder.
+### D-30 · Custom message types (`custom_msgs`) · `todo`
+### D-31 · Non-ROS MCAP (`MCAPInjector`, `MCAPSequenceExtractor`) · `todo`
+### D-32 · Object store source (SDK `ObjectStoreFileSource`, e.g. S3) · `todo`
+### D-33 · **Upstream**: GitHub Discussion for the D-16 / D-17 SDK changes · `todo`
+- `CONTRIBUTING.md`: Mosaico does **not** accept PRs from non-approved contributors.
 
-### D-27 · Recording overview tab + row links · `todo`
+## Phase 5: Recording pages (plan: `plans/recording-pages.md`)
+
+### D-34 · Recording overview tab + row links · `todo`
 - Parked on branch `AN/d15-recording-overview`; review and bring back.
-### D-28 · Streams tab (messages, rate) · `todo` — first pass: D-16
-### D-29 · Coverage timeline (start/end) · `todo` — first pass: D-17
-### D-30 · Stream inspector v1 · `todo` — first pass: D-18
-### D-31 · Notifications and error states · `todo` — first pass: D-19
-### D-32 · ECharts and `charts.js` · `todo` — first pass: D-23
-### D-33 · Cache folder and `/media` · `todo` — first pass: D-24
-### D-34 · Aggregation (pure) · `todo` — first pass: D-25
-### D-35 · Field statistics + distribution chart · `todo` — first pass: D-26
-### D-36 · Units and field names · `todo` — first pass: D-26b
-### D-37 · Time-series chart · `todo` — first pass: D-27
-### D-38 · Camera frames · `todo` — first pass: D-28
-### D-39 · GPS track · `todo` — first pass: D-29
-### D-40 · Coverage gaps · `todo` — first pass: D-30
-### D-41 · Video clips · `todo` — first pass: D-31
-### D-42 · Point-cloud preview · `todo` — first pass: D-32
-### D-43 · Shared time cursor (plots ↔ frames) · `todo` — first pass: D-35
+### D-35 · Streams tab (messages, rate) · `todo` — first pass: D-16
+### D-36 · Coverage timeline (start/end) · `todo` — first pass: D-17
+### D-37 · Stream inspector v1 · `todo` — first pass: D-18
+### D-38 · Notifications and error states · `todo` — first pass: D-19
+### D-39 · ECharts and `charts.js` · `todo` — first pass: D-23
+### D-40 · Cache folder and `/media` · `todo` — first pass: D-24
+### D-41 · Aggregation (pure) · `todo` — first pass: D-25
+### D-42 · Field statistics + distribution chart · `todo` — first pass: D-26
+### D-43 · Units and field names · `todo` — first pass: D-26b
+### D-44 · Time-series chart · `todo` — first pass: D-27
+### D-45 · Camera frames · `todo` — first pass: D-28
+### D-46 · GPS track · `todo` — first pass: D-29
+### D-47 · Coverage gaps · `todo` — first pass: D-30
+### D-48 · Video clips · `todo` — first pass: D-31
+### D-49 · Point-cloud preview · `todo` — first pass: D-32
+### D-50 · Shared time cursor (plots ↔ frames) · `todo` — first pass: D-35
 
-## Phase 5: Catalog index and search
+## Phase 6: Catalog index and search
 
-### D-44 · Index tables + sync job · `todo`
-### D-45 · Lists read from the index; freshness indicator · `todo`
-### D-46 · Live search, sort, pagination (`hx-push-url`) · `todo`
-### D-47 · Filters: date range, sensor type, metadata key/value · `todo`
+### D-51 · Index tables + sync job · `todo`
+### D-52 · Lists read from the index; freshness indicator · `todo`
+### D-53 · Live search, sort, pagination (`hx-push-url`) · `todo`
+### D-54 · Filters: date range, sensor type, metadata key/value · `todo`
 
-## Phase 6: Storage analytics
+## Phase 7: Storage analytics
 
-### D-48 · Daily storage snapshots (+ demo backfill, labelled) · `todo`
-### D-49 · Storage page: KPIs, growth chart by sensor type · `todo`
-### D-50 · Breakdown by metadata key + largest recordings · `todo`
+### D-55 · Daily storage snapshots (+ demo backfill, labelled) · `todo`
+### D-56 · Storage page: KPIs, growth chart by sensor type · `todo`
+### D-57 · Breakdown by metadata key + largest recordings · `todo`
 
-## Phase 7: Package and present
+## Phase 8: Package and present
 
-### D-51 · Compose: worker, dashboard-db, `demo` seed profile · `todo`
-### D-52 · Integration tests in CI against the compose stack · `todo`
+### D-58 · Compose: worker, dashboard-db, `demo` seed profile · `todo`
+### D-59 · Integration tests in CI against the compose stack · `todo`
 - Start mosaicod (+ demo data) in CI and add a strict switch (e.g. `DASHBOARD_REQUIRE_MOSAICOD=1`)
   that turns the integration-test skip into a failure when mosaicod is unreachable.
-### D-53 · README with screenshots, architecture final pass · `todo`
-### D-54 · 3-minute demo video · `todo`
-### D-55 · (Optional) public read-only demo deployment · `todo`
+### D-60 · README with screenshots, architecture final pass · `todo`
+### D-61 · 3-minute demo video · `todo`
+### D-62 · (Optional) public read-only demo deployment · `todo`
 
 ---
 
@@ -399,6 +452,4 @@ hooks were already done in D-01.)
 - Multi-user accounts, roles, login (see ADR-0003: single-user for now).
 - Deleting recordings from the UI.
 - Advanced query builder over `QueryOntologyCatalog`.
-- Non-ROS MCAP (protobuf / jsonschema) uploads.
 - Video playback, 3D point clouds.
-- Watch-folder ingestion mode (reuse SDK Watchdog).

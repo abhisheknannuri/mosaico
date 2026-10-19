@@ -11,3 +11,6 @@ dist/
 
 # generated demo bags
 demo-data/
+
+# Temporary files
+temp/

@@ -21,13 +21,15 @@ Typical usage (through a subclass):
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from mosaicolabs.enum import (
     SerializationFormat,
     SessionLevelErrorPolicy,
     TopicLevelErrorPolicy,
 )
+
+from .topic_status import TopicStatus
 
 _DEFAULT_TOPIC_ON_ERROR = TopicLevelErrorPolicy.Raise
 _DEFAULT_SESSION_ON_ERROR = SessionLevelErrorPolicy.Report
@@ -50,6 +52,55 @@ class InjectionStatus(Enum):
 
     DRY_RUN = "dry_run"
     """`dry_run` was set: the file was only analysed and nothing was written to the server."""
+
+
+@dataclass(frozen=True)
+class DryRunTopic:
+    """
+    A topic of the source file, as the injector would handle it.
+
+    Attributes:
+        name (str): The topic (or MCAP channel) name.
+        status (TopicStatus): `ACCEPTED`, or the reason the topic would be skipped.
+        adapter (Optional[str]): Name of the adapter that would translate the topic.
+            Accepted topics only.
+        msg_count (Optional[int]): Number of messages in the file. Accepted topics only.
+    """
+
+    name: str
+    status: TopicStatus
+    adapter: Optional[str] = None
+    msg_count: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class DryRunReport:
+    """
+    Result of an injector's `dry_run()`: what a real run would ingest, without connecting to
+    the Mosaico server.
+
+    A real run skips rejected topics and ingests the accepted ones.
+
+    Attributes:
+        file_path (Path): The analysed file.
+        sequence_name (str): The sequence the file would be ingested into.
+        topics (List[DryRunTopic]): Accepted topics first, then rejected ones.
+        unused_topic_metadata (List[str]): `topic_metadata` keys that match no accepted
+            topic (filtered out, unresolved or misspelled).
+    """
+
+    file_path: Path
+    sequence_name: str
+    topics: List[DryRunTopic]
+    unused_topic_metadata: List[str]
+
+    @property
+    def accepted_topics(self) -> List[DryRunTopic]:
+        return [t for t in self.topics if t.status == TopicStatus.ACCEPTED]
+
+    @property
+    def rejected_topics(self) -> List[DryRunTopic]:
+        return [t for t in self.topics if t.status != TopicStatus.ACCEPTED]
 
 
 # --- Configuration ---

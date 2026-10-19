@@ -1,6 +1,12 @@
 # Changelog
 
 
+## [Unreleased]
+
+### Features
+
+- **Dry run as data**: `RosbagInjector.dry_run()` and `MCAPInjector.dry_run()` return a `DryRunReport` (accepted topics with adapter and message count, rejected topics with their `TopicStatus`, unused `topic_metadata` keys) without connecting to the server, so applications can use the result instead of reading the printed table. `run()` with `dry_run=True` prints the same table as before.
+
 ## [0.7.0] - 2026-10-08
 
 This release introduces the new **MCAP Bridge** (injection of MCAP files into Mosaico and reconstruction of the original MCAP from Mosaico data, with Protobuf and JSON Schema decoding), the **Watchdog** for automatic, unattended upload of MCAP and ROS bag files, and a reworked **ROS Bridge**, now moved to `mosaicolabs.bridges.ros`, with dry-run mode, sequence updates and scoped type registries. It also adapts the SDK to the backend's new **`info` action** (replacing `version`), using the server's own reported configuration to drive write-side batching instead of a hardcoded constant - correctly isolated per-connection, so a script talking to multiple Mosaico servers at once gets the right limits for each.

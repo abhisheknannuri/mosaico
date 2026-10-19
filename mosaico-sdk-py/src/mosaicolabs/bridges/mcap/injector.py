@@ -41,10 +41,12 @@ from mosaicolabs.logging_config import get_logger, setup_sdk_logging
 
 from ..base_injector import (
     _DEFAULT_TOPIC_ON_ERROR,
+    DryRunReport,
+    DryRunTopic,
     InjectionConfigBase,
     InjectionStatus,
 )
-from ..topic_status import to_color
+from ..topic_status import TopicStatus, to_color
 from ..ui import ProgressManager
 from .adapter_base import MCAPSchemaMetadata
 from .helpers import _sanitize_mcap_name
@@ -215,60 +217,95 @@ class MCAPInjector:
 
         return self._loader
 
-    def _dry_run_report(self):
+    def dry_run(self) -> DryRunReport:
         """
-        Resolves the mcap's topic against the current configuration and prints a report
-        of what would be ingested, without connecting to the Mosaico server or writing data.
+        Resolves the mcap's topics against the current configuration and returns what a
+        real run would ingest, without connecting to the Mosaico server or writing data.
 
-        Reports, per topic: acceptance status, resolved adapter (or rejection reason), and
-        message count. Also flags any `topic_metadata` entry that doesn't match an accepted
-        topic (e.g. because it was excluded by `channels` filtering or misspelled).
+        Rejected topics are skipped by a real run; the accepted ones are ingested.
+
+        Returns:
+            DryRunReport: Per topic, the acceptance status, the resolved adapter and the
+                message count (accepted topics), or the rejection reason.
+
+        Raises:
+            Exception: If the file cannot be opened by the loader, e.g. it is unreadable or
+                no topic matches the `topics` / `channels` filter (`RuntimeError`); a real
+                run fails the same way.
         """
-        from rich.table import Table
-
         logger.info(f"[DRY RUN] Opening mcap: '{self._cfg.file_path}'")
 
         with self._open_or_get_loader() as mcap_loader:
-            table = Table(
-                title=f"Dry Run: '{self._cfg.file_path.name}' -> sequence '{self._cfg.sequence_name}'"
-            )
-            table.add_column("Topics")
-            table.add_column("Status")
-            table.add_column("Adapter / Reason")
-            table.add_column("Messages", justify="right")
-
+            topics = []
             for topic in mcap_loader.topics:
                 adapter = mcap_loader.resolve_adapter(topic)
-                table.add_row(
-                    topic,
-                    "[bright_green]Accepted",
-                    adapter.__name__ if adapter else "?",
-                    str(mcap_loader.msg_count(topic)),
+                topics.append(
+                    DryRunTopic(
+                        name=topic,
+                        status=TopicStatus.ACCEPTED,
+                        adapter=adapter.__name__ if adapter else None,
+                        msg_count=mcap_loader.msg_count(topic),
+                    )
                 )
-
             for topic, status in mcap_loader.rejected_topics:
-                table.add_row(
-                    topic,
-                    f"[{to_color(status)}]{status.value}",
-                    "-",
-                    "-",
-                )
-
-            self._console.print(table)
-
+                topics.append(DryRunTopic(name=topic, status=status))
             accepted = set(mcap_loader.topics)
-            unused_topic_metadata = set(self._cfg.topic_metadata or {}) - accepted
-            if unused_topic_metadata:
-                logger.warning(
-                    f"'topic_metadata' entries for topics that would NOT be ingested "
-                    f"(filtered out or unresolved): {sorted(unused_topic_metadata)}"
-                )
 
-            self._console.print(
-                f"[bold]{len(accepted)}[/bold] topic(s) would be ingested, "
-                f"[bold]{len(mcap_loader.rejected_topics)}[/bold] rejected. "
-                "No connection to the Mosaico server was made."
+        return DryRunReport(
+            file_path=self._cfg.file_path,
+            sequence_name=self._cfg.sequence_name,
+            topics=topics,
+            unused_topic_metadata=sorted(
+                set(self._cfg.topic_metadata or {}) - accepted
+            ),
+        )
+
+    def _dry_run_report(self):
+        """
+        Prints the `dry_run()` report: per topic, acceptance status, resolved adapter (or
+        rejection reason) and message count, and any `topic_metadata` entry that doesn't match
+        an accepted topic (e.g. because it was excluded by filtering or misspelled).
+        """
+        from rich.table import Table
+
+        report = self.dry_run()
+        table = Table(
+            title=f"Dry Run: '{report.file_path.name}' -> sequence '{report.sequence_name}'"
+        )
+        table.add_column("Topics")
+        table.add_column("Status")
+        table.add_column("Adapter / Reason")
+        table.add_column("Messages", justify="right")
+
+        for topic in report.accepted_topics:
+            table.add_row(
+                topic.name,
+                "[bright_green]Accepted",
+                topic.adapter or "?",
+                str(topic.msg_count),
             )
+
+        for topic in report.rejected_topics:
+            table.add_row(
+                topic.name,
+                f"[{to_color(topic.status)}]{topic.status.value}",
+                "-",
+                "-",
+            )
+
+        self._console.print(table)
+
+        if report.unused_topic_metadata:
+            logger.warning(
+                f"'topic_metadata' entries for topics that would NOT be ingested "
+                f"(filtered out or unresolved): {report.unused_topic_metadata}"
+            )
+
+        self._console.print(
+            f"[bold]{len(report.accepted_topics)}[/bold] topic(s) would be ingested, "
+            f"[bold]{len(report.rejected_topics)}[/bold] rejected. "
+            "No connection to the Mosaico server was made."
+        )
 
     def run(self) -> InjectionStatus:
         """
