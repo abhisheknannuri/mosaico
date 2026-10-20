@@ -151,6 +151,12 @@ class Job(DomainModel):
         return self.status in FINISHED_STATUSES
 
     @property
+    def duration(self) -> timedelta | None:
+        if self.started_at is None or self.finished_at is None:
+            return None
+        return self.finished_at - self.started_at
+
+    @property
     def share_done(self) -> float:
         if self.status == "completed":
             return 1.0

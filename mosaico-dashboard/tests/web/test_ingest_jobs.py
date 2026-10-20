@@ -144,3 +144,41 @@ def test_top_bar_shows_the_active_ingestion(bags):
     assert f'href="/ingest/jobs/{job.id}"' in text
     assert "Queued: drive__mcap" in text
     assert 'hx-get="/ingest/active"' in client.get("/").text
+
+
+def test_history_lists_recent_ingestions(bags):
+    client = make(bags)
+    engine = engine_of(client)
+    done = enqueue_ingestion(engine, REQUEST)
+    failed = enqueue_ingestion(
+        engine, REQUEST.model_copy(update={"sequence_name": "other"})
+    )
+    with engine.begin() as c:
+        claim_next(c)
+        finish(c, done.id, "completed")
+        claim_next(c)
+        finish(c, failed.id, "failed", "Flight returned already exists error")
+
+    text = client.get("/ingest").text
+
+    assert "Recent ingestions" in text
+    assert f'href="/ingest/jobs/{done.id}"' in text
+    assert '<span class="chip ok">completed</span>' in text
+    assert "failed</span>" in text and "already exists" in text
+    assert text.index("other") < text.index(">drive__mcap<")
+
+
+def test_history_when_empty(bags):
+    assert "No ingestions yet." in make(bags).get("/ingest").text
+
+
+def test_history_when_the_database_is_down(bags):
+    from mosaico_dashboard.db.engine import create_db_engine
+
+    engine = create_db_engine("postgresql+psycopg://x:x@127.0.0.1:1/x")
+    app = create_app(Settings(ingest_dir=bags), gateway=FakeGateway(), engine=engine)
+
+    text = TestClient(app).get("/ingest").text
+
+    assert "drive.mcap" in text
+    assert "database is not reachable" in text

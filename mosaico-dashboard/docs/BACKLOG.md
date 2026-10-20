@@ -315,7 +315,7 @@ hooks were already done in D-01.)
 > Agreed 2026-10-19: files are on the same machine as the dashboard (no browser upload). One
 > ingestion at a time, run by the background worker, tracked in the dashboard database so a
 > page refresh or a dashboard restart doesn't lose it. The SDK changes are made in our fork
-> and proposed upstream later (D-33).
+> and proposed upstream later (D-34).
 
 ### D-16 · SDK (fork): dry run returns its result · `done`
 - [x] `RosbagInjector.dry_run()` and `MCAPInjector.dry_run()` return a `DryRunReport`
@@ -332,7 +332,7 @@ hooks were already done in D-01.)
   - existing name: `run()` raises `ArrowException: … already exists` when creating the
     sequence, nothing is written; `dry_run()` doesn't detect it (no server connection).
 - Open: zero accepted topics because of unknown message types (not a filter) wasn't tested;
-  needs a bag with custom types (D-30).
+  needs a bag with custom types (D-31).
 
 ### D-17 · SDK (fork): progress callback · `done`
 - [x] `ProgressManager(loader, callback=None)` (`bridges/ui.py`): the callback gets a
@@ -350,7 +350,7 @@ hooks were already done in D-01.)
   `demo_field_test_01` (into the test recording `d17_progress_test`), reports every ~0.5 s,
   final one at 100 %.
 - Not yet: the watchdog builds its own injector configs, so it doesn't forward a callback
-  (D-29).
+  (D-30).
 
 ### D-18 · Dashboard database · `done`
 - [x] Compose `dashboard-db` (Postgres 18, port 5433, volume `dashboard-pg-data`, both profiles);
@@ -445,8 +445,14 @@ hooks were already done in D-01.)
   untouched (the error comes before any write); cancel → nothing left in mosaicod; page updated
   itself to "Completed" in Chrome through SSE.
 
-### D-23 · Ingestion history · `todo`
-- Past runs from the database: file, recording, started, duration, result, error.
+### D-23 · Ingestion history · `done`
+- [x] "Recent ingestions" card on the Ingest page: the last 20 ingestion jobs, newest first
+  (`list_jobs` by kind): recording (link to its job page), file (full path on hover), started,
+  duration, result chip (completed / ingesting % / queued / cancelled / failed with the error,
+  shortened). Shown even without an ingest folder; a note when the database is down.
+- [x] `Job.duration`; chip `error`; `path` macro (file paths wrap after `/`).
+- [x] Tests: kind filter, duration, database down, page (all results, order, empty); 184
+  tests. Screenshot fix: names wrapping mid-word → paths break after `/`, names stay whole.
 
 ### D-24 · Basic and advanced options · `todo`
 - Defaults from settings; per run: topic selection (from the dry run), ROS distro, keep or
@@ -455,71 +461,76 @@ hooks were already done in D-01.)
 - "Keep partial data" (`Report`): the recording stays with what was uploaded and an error
   notification; the file list shows it as partially ingested, not with a plain tick.
 
+### D-25 · Ingest UI: more intuitive, richer, more immersive · `todo`
+- Iterate on the web UI components of the Ingest and job pages until the flow (pick a file →
+  dry run → start → follow → result) feels clear and engaging; scope and ideas agreed step by
+  step before building.
+
 ## Phase 3: Export (production grade)
 
-### D-25 · Export page: a recording as a ROS bag · `todo`
+### D-26 · Export page: a recording as a ROS bag · `todo`
 - SDK `ROSSequenceExtractor` in the worker (MCAP / db3 / ROS 1 bag), progress through SSE
   (D-17), result in an export folder setting. First pass: D-34 (notes).
 
-### D-26 · Export a stream (or a time window) as CSV / Parquet · `todo`
+### D-27 · Export a stream (or a time window) as CSV / Parquet · `todo`
 - First pass: D-33 (notes).
 
 ## Phase 4: Ingest and export, later
 
-### D-27 · Several files in one go (in sequence) · `todo`
-### D-28 · Change the ingest folder from the UI (without restarting) · `todo`
-### D-29 · Watchdog mode: watch the ingest folder in the worker (SDK `Watchdog`, daemon) · `todo`
+### D-28 · Several files in one go (in sequence) · `todo`
+### D-29 · Change the ingest folder from the UI (without restarting) · `todo`
+### D-30 · Watchdog mode: watch the ingest folder in the worker (SDK `Watchdog`, daemon) · `todo`
 - Keeps running while the user is on other pages; its `.already_loaded.txt` /
   `.quarantine_file.txt` live in the watched folder.
-### D-30 · Custom message types (`custom_msgs`) · `todo`
-### D-31 · Non-ROS MCAP (`MCAPInjector`, `MCAPSequenceExtractor`) · `todo`
-### D-32 · Object store source (SDK `ObjectStoreFileSource`, e.g. S3) · `todo`
-### D-33 · **Upstream**: GitHub Discussion for the D-16 / D-17 SDK changes · `todo`
+### D-31 · Custom message types (`custom_msgs`) · `todo`
+### D-32 · Non-ROS MCAP (`MCAPInjector`, `MCAPSequenceExtractor`) · `todo`
+### D-33 · Object store source (SDK `ObjectStoreFileSource`, e.g. S3) · `todo`
+### D-34 · **Upstream**: GitHub Discussion for the D-16 / D-17 SDK changes · `todo`
 - `CONTRIBUTING.md`: Mosaico does **not** accept PRs from non-approved contributors.
 
 ## Phase 5: Recording pages (plan: `plans/recording-pages.md`)
 
-### D-34 · Recording overview tab + row links · `todo`
+### D-35 · Recording overview tab + row links · `todo`
 - Parked on branch `AN/d15-recording-overview`; review and bring back.
-### D-35 · Streams tab (messages, rate) · `todo` — first pass: D-16
-### D-36 · Coverage timeline (start/end) · `todo` — first pass: D-17
-### D-37 · Stream inspector v1 · `todo` — first pass: D-18
-### D-38 · Notifications and error states · `todo` — first pass: D-19
-### D-39 · ECharts and `charts.js` · `todo` — first pass: D-23
-### D-40 · Cache folder and `/media` · `todo` — first pass: D-24
-### D-41 · Aggregation (pure) · `todo` — first pass: D-25
-### D-42 · Field statistics + distribution chart · `todo` — first pass: D-26
-### D-43 · Units and field names · `todo` — first pass: D-26b
-### D-44 · Time-series chart · `todo` — first pass: D-27
-### D-45 · Camera frames · `todo` — first pass: D-28
-### D-46 · GPS track · `todo` — first pass: D-29
-### D-47 · Coverage gaps · `todo` — first pass: D-30
-### D-48 · Video clips · `todo` — first pass: D-31
-### D-49 · Point-cloud preview · `todo` — first pass: D-32
-### D-50 · Shared time cursor (plots ↔ frames) · `todo` — first pass: D-35
+### D-36 · Streams tab (messages, rate) · `todo` — first pass: D-16
+### D-37 · Coverage timeline (start/end) · `todo` — first pass: D-17
+### D-38 · Stream inspector v1 · `todo` — first pass: D-18
+### D-39 · Notifications and error states · `todo` — first pass: D-19
+### D-40 · ECharts and `charts.js` · `todo` — first pass: D-23
+### D-41 · Cache folder and `/media` · `todo` — first pass: D-24
+### D-42 · Aggregation (pure) · `todo` — first pass: D-25
+### D-43 · Field statistics + distribution chart · `todo` — first pass: D-26
+### D-44 · Units and field names · `todo` — first pass: D-26b
+### D-45 · Time-series chart · `todo` — first pass: D-27
+### D-46 · Camera frames · `todo` — first pass: D-28
+### D-47 · GPS track · `todo` — first pass: D-29
+### D-48 · Coverage gaps · `todo` — first pass: D-30
+### D-49 · Video clips · `todo` — first pass: D-31
+### D-50 · Point-cloud preview · `todo` — first pass: D-32
+### D-51 · Shared time cursor (plots ↔ frames) · `todo` — first pass: D-35
 
 ## Phase 6: Catalog index and search
 
-### D-51 · Index tables + sync job · `todo`
-### D-52 · Lists read from the index; freshness indicator · `todo`
-### D-53 · Live search, sort, pagination (`hx-push-url`) · `todo`
-### D-54 · Filters: date range, sensor type, metadata key/value · `todo`
+### D-52 · Index tables + sync job · `todo`
+### D-53 · Lists read from the index; freshness indicator · `todo`
+### D-54 · Live search, sort, pagination (`hx-push-url`) · `todo`
+### D-55 · Filters: date range, sensor type, metadata key/value · `todo`
 
 ## Phase 7: Storage analytics
 
-### D-55 · Daily storage snapshots (+ demo backfill, labelled) · `todo`
-### D-56 · Storage page: KPIs, growth chart by sensor type · `todo`
-### D-57 · Breakdown by metadata key + largest recordings · `todo`
+### D-56 · Daily storage snapshots (+ demo backfill, labelled) · `todo`
+### D-57 · Storage page: KPIs, growth chart by sensor type · `todo`
+### D-58 · Breakdown by metadata key + largest recordings · `todo`
 
 ## Phase 8: Package and present
 
-### D-58 · Compose: worker, dashboard-db, `demo` seed profile · `todo`
-### D-59 · Integration tests in CI against the compose stack · `todo`
+### D-59 · Compose: worker, dashboard-db, `demo` seed profile · `todo`
+### D-60 · Integration tests in CI against the compose stack · `todo`
 - Start mosaicod (+ demo data) in CI and add a strict switch (e.g. `DASHBOARD_REQUIRE_MOSAICOD=1`)
   that turns the integration-test skip into a failure when mosaicod is unreachable.
-### D-60 · README with screenshots, architecture final pass · `todo`
-### D-61 · 3-minute demo video · `todo`
-### D-62 · (Optional) public read-only demo deployment · `todo`
+### D-61 · README with screenshots, architecture final pass · `todo`
+### D-62 · 3-minute demo video · `todo`
+### D-63 · (Optional) public read-only demo deployment · `todo`
 
 ---
 

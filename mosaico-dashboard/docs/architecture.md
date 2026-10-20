@@ -163,7 +163,8 @@ selected one and runs a dry run in the web process (`POST /ingest/dry-run`). "St
 and dry-runs again, queues the job and redirects to `/ingest/jobs/<id>`. That page follows the
 job through server-sent events: an async endpoint reads the job row every 0.5 s (in the thread
 pool) and sends the progress HTML when it changed, then `done` and closes. The top bar polls
-`/ingest/active` every 3 s.
+`/ingest/active` every 3 s. The Ingest page also lists the last 20 ingestion jobs from the
+`job` table ("Recent ingestions").
 
 ```mermaid
 sequenceDiagram

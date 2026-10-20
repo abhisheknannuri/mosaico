@@ -30,7 +30,7 @@
         {% for f in folder.files %}
           {% set url = "/ingest?file=" ~ (f.relative_path | urlencode) %}
           <tr{% if selected and f.relative_path == selected.relative_path %} aria-selected="true"{% endif %}>
-            <td class="name"><a href="{{ url }}" hx-get="{{ url }}" hx-target="#ingest" hx-swap="outerHTML" hx-push-url="true">{{ f.relative_path }}</a></td>
+            <td class="name"><a href="{{ url }}" hx-get="{{ url }}" hx-target="#ingest" hx-swap="outerHTML" hx-push-url="true">{{ ui.path(f.relative_path) }}</a></td>
             <td class="num" title="{{ f.size_bytes | bytes_exact }}">{{ f.size_bytes | bytes }}</td>
             <td class="nowrap">{% if f.in_mosaico %}<span class="chip ok" title="A recording named {{ f.recording_name }} exists">in Mosaico</span>{% endif %}</td>
           </tr>
@@ -62,4 +62,5 @@
     {% endcall %}
   </div>
 {% endif %}
+  {% include "partials/ingest_history.html" %}
 </section>

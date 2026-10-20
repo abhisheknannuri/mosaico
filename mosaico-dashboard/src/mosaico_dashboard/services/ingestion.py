@@ -3,12 +3,14 @@
 from pathlib import Path
 
 from sqlalchemy import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 from mosaico_dashboard.db.jobs import (
     active_job,
     enqueue,
     finish,
     get_job,
+    list_jobs,
     request_cancel,
     save_progress,
 )
@@ -115,6 +117,18 @@ def start_ingestion(
 def get_ingestion(engine: Engine, job_id: str) -> Job | None:
     with engine.connect() as connection:
         return get_job(connection, job_id)
+
+
+HISTORY_LENGTH = 20
+
+
+def list_ingestions(engine: Engine, limit: int = HISTORY_LENGTH) -> list[Job] | None:
+    """Recent ingestions, newest first; None when the dashboard database is unreachable."""
+    try:
+        with engine.connect() as connection:
+            return list_jobs(connection, INGEST_JOB, limit)
+    except SQLAlchemyError:
+        return None
 
 
 def get_active_ingestion(engine: Engine) -> Job | None:

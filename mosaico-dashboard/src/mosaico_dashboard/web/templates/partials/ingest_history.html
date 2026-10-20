@@ -1,0 +1,38 @@
+{% import "components.html" as ui %}
+{% call ui.card("Recent ingestions") %}
+  {% if history is none %}
+    <p class="muted">The dashboard database is not reachable, so past ingestions can't be shown.</p>
+  {% elif not history %}
+    <p class="muted">No ingestions yet.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Recording</th>
+        <th>File</th>
+        <th>Started</th>
+        <th class="num">Duration</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for job in history %}
+      <tr>
+        <td class="name"><a href="/ingest/jobs/{{ job.id }}">{{ job.params.sequence_name }}</a></td>
+        <td title="{{ job.params.file_path }}">{{ job.params.file_path.rsplit("/", 1)[-1] }}</td>
+        <td class="nowrap">{{ (job.started_at or job.created_at) | datetime }}</td>
+        <td class="num">{{ job.duration | duration if job.duration else "—" }}</td>
+        <td>
+          {% if job.status == "completed" %}<span class="chip ok">completed</span>
+          {% elif job.status == "running" %}<span class="chip">ingesting {{ (job.share_done * 100) | round | int }}%</span>
+          {% elif job.status == "queued" %}<span class="chip">queued</span>
+          {% elif job.status == "cancelled" %}<span class="chip warn">cancelled</span>
+          {% else %}<span class="chip error" title="{{ job.error }}">failed</span>{% if job.error %} <span class="muted job-error">{{ job.error | truncate(60) }}</span>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+{% endcall %}

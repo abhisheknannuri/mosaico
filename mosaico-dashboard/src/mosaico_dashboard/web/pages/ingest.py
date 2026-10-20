@@ -9,6 +9,7 @@ from mosaico_dashboard.services.ingestion import (
     dry_run_ingestion,
     find_bag_file,
     get_ingest_folder,
+    list_ingestions,
     start_ingestion,
 )
 from mosaico_dashboard.settings import Settings
@@ -27,10 +28,15 @@ def ingest(
     request: Request,
     file: str | None = None,
     gateway: MosaicoGateway = Depends(get_gateway),
+    engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
     folder = get_ingest_folder(gateway, settings.ingest_dir)
-    context = {"folder": folder, "selected": find_bag_file(folder, file)}
+    context = {
+        "folder": folder,
+        "selected": find_bag_file(folder, file),
+        "history": list_ingestions(engine),
+    }
     return render(request, "pages/ingest.html", "partials/ingest.html", context)
 
 

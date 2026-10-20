@@ -54,11 +54,14 @@ def get_job(connection: Connection, job_id: str) -> Job | None:
     return _to_job(row) if row else None
 
 
-def list_jobs(connection: Connection, limit: int = 50) -> list[Job]:
-    """Newest first."""
-    rows = connection.execute(
-        select(job).order_by(job.c.created_at.desc()).limit(limit)
-    ).mappings()
+def list_jobs(
+    connection: Connection, kind: str | None = None, limit: int = 50
+) -> list[Job]:
+    """Newest first, optionally of one kind."""
+    query = select(job).order_by(job.c.created_at.desc()).limit(limit)
+    if kind is not None:
+        query = query.where(job.c.kind == kind)
+    rows = connection.execute(query).mappings()
     return [_to_job(row) for row in rows]
 
 

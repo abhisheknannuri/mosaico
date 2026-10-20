@@ -151,3 +151,12 @@ def test_active_ingestion_prefers_the_running_job(sqlite_engine):
 
         finish(c, first.id, "completed")
     assert (active := get_active_ingestion(sqlite_engine)) and active.id == second.id
+
+
+def test_list_ingestions_is_none_when_the_database_is_down():
+    from mosaico_dashboard.db.engine import create_db_engine
+    from mosaico_dashboard.services.ingestion import list_ingestions
+
+    engine = create_db_engine("postgresql+psycopg://x:x@127.0.0.1:1/x")
+
+    assert list_ingestions(engine) is None

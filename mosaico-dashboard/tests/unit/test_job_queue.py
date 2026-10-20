@@ -104,3 +104,24 @@ def test_list_jobs_newest_first(sqlite_engine):
         listed = [j.id for j in list_jobs(c)]
 
     assert listed == [newer.id, older.id]
+
+
+def test_list_jobs_of_one_kind(sqlite_engine):
+    with sqlite_engine.begin() as c:
+        enqueue(c, "ingest", {})
+        enqueue(c, "export", {})
+        kinds = [j.kind for j in list_jobs(c, "ingest")]
+
+    assert kinds == ["ingest"]
+
+
+def test_duration_once_finished(sqlite_engine):
+    with sqlite_engine.begin() as c:
+        job = enqueue(c, "ingest", {})
+        claim_next(c)
+        running = get_job(c, job.id)
+        finish(c, job.id, "completed")
+        done = get_job(c, job.id)
+
+    assert running is not None and running.duration is None
+    assert done is not None and done.duration is not None

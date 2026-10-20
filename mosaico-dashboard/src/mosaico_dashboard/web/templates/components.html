@@ -89,6 +89,11 @@
 </div>
 {% endmacro %}
 
+{% macro path(value) %}
+{#- A file path that can wrap after each "/". -#}
+{% for part in value.split("/") %}{{ part }}{% if not loop.last %}/<wbr>{% endif %}{% endfor %}
+{%- endmacro %}
+
 {% macro empty_state(title) %}
 <div class="empty-state">
   <h2>{{ title }}</h2>

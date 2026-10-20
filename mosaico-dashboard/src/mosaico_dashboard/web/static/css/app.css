@@ -395,7 +395,7 @@ td.nowrap {
 
 td.name {
   color: var(--heading);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 td.name a {
@@ -429,6 +429,15 @@ tbody tr[aria-selected="true"] {
 .chip.warn {
   color: var(--warn);
   border-color: var(--warn);
+}
+
+.chip.error {
+  color: var(--down);
+  border-color: var(--down);
+}
+
+.job-error {
+  font-size: 0.8rem;
 }
 
 /* text_field, key_value_rows */
