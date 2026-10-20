@@ -12,6 +12,7 @@
   </script>
   <script src="/static/vendor/htmx-2.0.11.min.js" defer></script>
   <script src="/static/js/app.js" defer></script>
+  {% block scripts %}{% endblock %}
 </head>
 <body>
   <div class="app">
@@ -23,6 +24,7 @@
         <img src="/static/img/mosaico-logo.svg" alt="Mosaico">
         <span>Dashboard</span>
       </a>
+      <div class="active-ingestion" hx-get="/ingest/active" hx-trigger="load, every 3s"></div>
       <div class="daemon-status" hx-get="/status" hx-trigger="load, every 30s"></div>
     </header>
 

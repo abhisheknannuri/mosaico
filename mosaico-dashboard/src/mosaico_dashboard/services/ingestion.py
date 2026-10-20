@@ -5,6 +5,7 @@ from pathlib import Path
 from sqlalchemy import Engine
 
 from mosaico_dashboard.db.jobs import (
+    active_job,
     enqueue,
     finish,
     get_job,
@@ -88,6 +89,64 @@ def dry_run_ingestion(
     except Exception as error:
         return DryRun(request=request, error=str(error) or type(error).__name__)
     return DryRun(request=request, topics=topics)
+
+
+def start_ingestion(
+    gateway: MosaicoGateway,
+    engine: Engine,
+    file: BagFile,
+    sequence_name: str,
+    metadata_keys: list[str],
+    metadata_values: list[str],
+    skipped_confirmed: bool,
+) -> tuple[DryRun, Job | None]:
+    """Checks the form and dry-runs again; queues the job when nothing blocks and skipped
+    topics, if any, were confirmed. Returns the dry run and the job (None if not queued)."""
+    result = dry_run_ingestion(
+        gateway, file, sequence_name, metadata_keys, metadata_values
+    )
+    if result.request is None or result.verdict == "blocked":
+        return result, None
+    if result.verdict == "warn" and not skipped_confirmed:
+        return result, None
+    return result, enqueue_ingestion(engine, result.request)
+
+
+def get_ingestion(engine: Engine, job_id: str) -> Job | None:
+    with engine.connect() as connection:
+        return get_job(connection, job_id)
+
+
+def get_active_ingestion(engine: Engine) -> Job | None:
+    with engine.connect() as connection:
+        return active_job(connection)
+
+
+_HINTS = [
+    (
+        ("already exists",),
+        "A recording with this name already exists in Mosaico. Choose another name.",
+    ),
+    (
+        ("unavailable", "failed to connect", "connection refused"),
+        "mosaicod could not be reached. Check that it is running "
+        "(compose profile development) and try again.",
+    ),
+    (
+        ("unauthenticated", "unauthorized", "permission"),
+        "mosaicod refused the upload. The API key (DASHBOARD_MOSAICO_API_KEY) needs the "
+        "write permission.",
+    ),
+]
+
+
+def error_hint(error: str | None) -> str | None:
+    """A suggestion for errors the user can fix; None for others."""
+    text = (error or "").lower()
+    for words, hint in _HINTS:
+        if any(word in text for word in words):
+            return hint
+    return None
 
 
 def find_bag_file(folder: IngestFolder, relative_path: str | None) -> BagFile | None:

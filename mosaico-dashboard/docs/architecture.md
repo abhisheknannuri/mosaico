@@ -94,7 +94,7 @@ erDiagram
         varchar(36) id PK "UUID"
         varchar(40) kind "ingest"
         varchar(16) status "queued | running | completed | failed | cancelled (indexed)"
-        json params "IngestRequest: file_path, sequence_name, metadata"
+        json params "IngestRequest: file_path, sequence_name, metadata, keep_partial"
         json progress "Progress, null until the first report"
         text error "message when failed"
         boolean cancel_requested "set by Cancel on a running job"
@@ -159,8 +159,28 @@ sequenceDiagram
 ```
 
 The Ingest page (`/ingest`) lists the bags in `DASHBOARD_INGEST_DIR`, shows the options for the
-selected one (D-20) and runs a dry run in the web process (`POST /ingest/dry-run`, D-21);
-starting the job and live progress follow (D-22).
+selected one and runs a dry run in the web process (`POST /ingest/dry-run`). "Start" checks
+and dry-runs again, queues the job and redirects to `/ingest/jobs/<id>`. That page follows the
+job through server-sent events: an async endpoint reads the job row every 0.5 s (in the thread
+pool) and sends the progress HTML when it changed, then `done` and closes. The top bar polls
+`/ingest/active` every 3 s.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant W as Web app
+    participant DB as dashboard-db
+    B->>W: POST /ingest/start (form)
+    W->>W: check + dry run (SDK)
+    W->>DB: insert job (queued)
+    W-->>B: HX-Redirect /ingest/jobs/<id>
+    B->>W: GET /ingest/jobs/<id>/events (SSE)
+    loop every 0.5 s until finished
+        W->>DB: read job
+        W-->>B: event progress (HTML, when changed)
+    end
+    W-->>B: event done (stream closed)
+```
 
 Creating an SDK injector replaces the SDK logger's handlers with its own (Rich, stderr). The
 web process hands them back right after (`logging_config.route_sdk_logs_to_root`); the job
@@ -304,7 +324,8 @@ tests).
 | --- | --- | --- | --- | --- |
 | Ops | `web/health.py` | `/healthz` (process alive), `/readyz` (mosaicod and database, each reported; 503 if either is down) | Yes, tag `ops` | JSON |
 | JSON API | `web/api/` | `/api/v1/...` | Yes, tag per feature | JSON, Pydantic model as return type |
-| HTML pages | `web/pages/` | `/`, `/recordings`, `/ingest` (+ `POST /ingest/dry-run`, fragment), `/export`, `/status` | No | Full page, or fragment for htmx |
+| HTML pages | `web/pages/` | `/`, `/recordings`, `/ingest` (+ `POST /ingest/dry-run`, `POST /ingest/start`), `/ingest/jobs/<id>` (+ `POST …/cancel`), `/ingest/active`, `/export`, `/status` | No | Full page, or fragment for htmx |
+| Event stream | `web/pages/ingest_jobs.py` | `/ingest/jobs/<id>/events` | No | `text/event-stream`: `progress` (HTML), `done` |
 
 - Every documented route has a `summary` and a tag; its return type annotation is its response
   model. `operationId` is the Python function name.

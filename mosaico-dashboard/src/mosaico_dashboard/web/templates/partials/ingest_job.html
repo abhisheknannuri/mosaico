@@ -1,0 +1,5 @@
+<section id="ingest-job"{% if not job.finished %} hx-ext="sse" sse-connect="/ingest/jobs/{{ job.id }}/events" sse-close="done"{% endif %}>
+  <div id="job-progress" sse-swap="progress">
+    {% include "partials/ingest_job_progress.html" %}
+  </div>
+</section>

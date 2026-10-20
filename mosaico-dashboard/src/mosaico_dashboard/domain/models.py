@@ -122,11 +122,14 @@ class IngestRequest(DomainModel):
     file_path: str
     sequence_name: str
     metadata: dict[str, Any] = {}
+    keep_partial: bool = False
 
 
 IngestOutcome = Literal["completed", "cancelled"]
 
 JobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+
+FINISHED_STATUSES = ("completed", "failed", "cancelled")
 
 
 class Job(DomainModel):
@@ -142,6 +145,18 @@ class Job(DomainModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+
+    @property
+    def finished(self) -> bool:
+        return self.status in FINISHED_STATUSES
+
+    @property
+    def share_done(self) -> float:
+        if self.status == "completed":
+            return 1.0
+        if self.progress is None or not self.progress.total:
+            return 0.0
+        return self.progress.done / self.progress.total
 
 
 class BagFile(DomainModel):

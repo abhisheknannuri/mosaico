@@ -119,3 +119,18 @@ def fail_interrupted(connection: Connection) -> int:
         .values(status="failed", error=INTERRUPTED_ERROR, finished_at=_now())
     )
     return result.rowcount
+
+
+def active_job(connection: Connection) -> Job | None:
+    """The running job, else the oldest queued one."""
+    row = (
+        connection.execute(
+            select(job)
+            .where(job.c.status.in_(["running", "queued"]))
+            .order_by(job.c.status.desc(), job.c.created_at)
+            .limit(1)
+        )
+        .mappings()
+        .first()
+    )
+    return _to_job(row) if row else None

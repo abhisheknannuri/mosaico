@@ -42,4 +42,13 @@
     {% endfor %}
     </tbody>
   </table>
+  {% if result.verdict != "blocked" %}
+    <div class="start-ingestion">
+      {% if result.verdict == "warn" %}
+        <label class="checkbox"><input type="checkbox" name="skipped_confirmed" value="true"> Ingest without the skipped topics</label>
+        {% if confirm_needed %}<p class="muted">Tick the box to start without the skipped topics.</p>{% endif %}
+      {% endif %}
+      <button type="button" class="primary" hx-post="/ingest/start" hx-include="#ingest-options, #dry-run" hx-target="#dry-run">Start ingestion</button>
+    </div>
+  {% endif %}
 {% endif %}

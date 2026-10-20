@@ -1,0 +1,60 @@
+{% import "components.html" as ui %}
+{% set labels = {"queued": "Waiting", "running": "Ingesting", "completed": "Completed", "failed": "Failed", "cancelled": "Cancelled"} %}
+{% set progress = job.progress %}
+<div class="stats">
+  {{ ui.stat("Status", labels[job.status], "cancelling…" if job.cancel_requested and not job.finished else None) }}
+  {{ ui.stat("Progress", ((job.share_done * 100) | round | int) ~ "%") }}
+  {{ ui.stat("Messages", (progress.done | number) if progress else "—", "of " ~ (progress.total | number) if progress else None) }}
+  {{ ui.stat("Elapsed", elapsed | duration if elapsed else "—") }}
+</div>
+
+{% if waiting %}
+  {% call ui.notice("warn", "Waiting for the worker") %}
+    <p>The ingestion is queued. Is the worker running? Start it with <code>poetry run mosaico-dashboard-worker</code>.</p>
+  {% endcall %}
+{% elif job.status == "completed" %}
+  {% call ui.notice("ok", "Ingested") %}
+    <p>The recording <code>{{ job.params.sequence_name }}</code> is in Mosaico. <a href="/recordings">See recordings</a></p>
+  {% endcall %}
+{% elif job.status == "failed" %}
+  {% call ui.notice("error", "Ingestion failed") %}
+    {% if hint %}<p>{{ hint }}</p>{% endif %}
+    <p class="muted">{{ job.error }}</p>
+    {% if progress and progress.done %}
+      <p>{% if job.params.keep_partial %}The data uploaded before the error was kept.{% else %}Nothing was kept in Mosaico; the file can be ingested again.{% endif %}</p>
+    {% endif %}
+  {% endcall %}
+{% elif job.status == "cancelled" %}
+  {% call ui.notice("warn", "Cancelled") %}
+    <p>{% if job.params.keep_partial %}The data uploaded before cancelling was kept.{% else %}Nothing was kept in Mosaico; the file can be ingested again.{% endif %}</p>
+  {% endcall %}
+{% endif %}
+
+{% if not job.finished and not job.cancel_requested %}
+  <p><button type="button" hx-post="/ingest/jobs/{{ job.id }}/cancel" hx-target="#job-progress" hx-confirm="Cancel this ingestion?">Cancel</button></p>
+{% endif %}
+
+{% call ui.card("Topics") %}
+  {% if progress and progress.topics %}
+  <table class="job-topics">
+    <thead>
+      <tr>
+        <th>Topic</th>
+        <th class="num">Messages</th>
+        <th><span class="muted">Progress</span></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for topic in progress.topics %}
+      <tr>
+        <td class="name">{{ topic.name }}{% if topic.status %} <span class="chip warn">{{ topic.status }}</span>{% endif %}</td>
+        <td class="num">{% if topic.total is not none %}{{ topic.done | number }} / {{ topic.total | number }}{% else %}—{% endif %}</td>
+        <td class="share">{% if topic.total %}{{ ui.share_bar(topic.done / topic.total) }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="muted">Topics appear when the SDK has opened the file.</p>
+  {% endif %}
+{% endcall %}

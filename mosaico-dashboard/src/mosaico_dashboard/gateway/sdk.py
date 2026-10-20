@@ -12,6 +12,7 @@ from mosaicolabs.bridges.base_injector import InjectionStatus
 from mosaicolabs.bridges.ros import RosbagInjector, ROSInjectionConfig
 from mosaicolabs.bridges.topic_status import TopicStatus
 from mosaicolabs.bridges.ui import ProgressSnapshot
+from mosaicolabs.enum import SessionLevelErrorPolicy
 
 from mosaico_dashboard.domain.models import (
     BagFile,
@@ -128,6 +129,9 @@ class SdkGateway(MosaicoGateway):
             mosaico_api_key=self._api_key,
             enable_tls=self._tls,
             tls_cert_path=str(self._tls_cert_path) if self._tls_cert_path else None,
+            on_error=SessionLevelErrorPolicy.Report
+            if request.keep_partial
+            else SessionLevelErrorPolicy.Delete,
             progress_callback=progress_callback,
         )
 

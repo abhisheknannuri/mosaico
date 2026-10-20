@@ -91,3 +91,15 @@ def test_dry_run_of_a_demo_bag_and_logging_is_handed_back(gateway):
     assert all(t.msg_count for t in topics if t.accepted)
     sdk_logger = logging.getLogger("mosaicolabs")
     assert sdk_logger.handlers == [] and sdk_logger.propagate is True
+
+
+def test_ingestion_deletes_partial_data_unless_kept(gateway):
+    from mosaicolabs.enum import SessionLevelErrorPolicy
+
+    from mosaico_dashboard.domain.models import IngestRequest
+
+    request = IngestRequest(file_path="/bags/a.mcap", sequence_name="a")
+
+    assert gateway._injection_config(request).on_error == SessionLevelErrorPolicy.Delete
+    kept = request.model_copy(update={"keep_partial": True})
+    assert gateway._injection_config(kept).on_error == SessionLevelErrorPolicy.Report

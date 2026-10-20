@@ -425,16 +425,25 @@ hooks were already done in D-01.)
 - Not here: whether the name already exists (the dry run doesn't contact mosaicod; the run
   reports it, D-22).
 
-### D-22 · Ingestion run, live progress, cancel · `todo`
-- Start → job in the worker → progress per topic and overall through SSE (from D-17), Cancel
-  button, error with a hint for known cases (name already exists → rename or append; mosaicod
-  unreachable; API key without `write`), the SDK message otherwise.
-- User can leave the page: indicator in the top bar ("Ingesting … 42 %") links back; refresh
-  or restart reconnects to the job.
-- Start posts the same form; the server checks it and dry-runs again (the shown result may be
-  stale if the form changed), and with skipped topics the user confirms first.
-- Default `on_error=Delete` (agreed 2026-10-19): a failed or cancelled ingestion leaves no
-  recording, so the file isn't marked ingested and can be retried under the same name.
+### D-22 · Ingestion run, live progress, cancel · `done`
+- [x] "Start ingestion" under the dry-run result posts the same form (`POST /ingest/start`):
+  checked and dry-run again; with skipped topics the user ticks "Ingest without the skipped
+  topics" first; then a job is queued and the browser goes to `/ingest/jobs/<id>`.
+- [x] Job page: status, progress %, messages, elapsed, progress per topic; live through SSE
+  (`/ingest/jobs/<id>/events`: `progress` with the HTML when it changes, `done` at the end;
+  htmx SSE extension 2.2.4 vendored, 0BSD, loaded only on this page). Refresh or coming back
+  reconnects; finished jobs render without a stream.
+- [x] Cancel (confirm dialog) → D-19 cancel; "Waiting for the worker" after 5 s queued.
+- [x] Errors: SDK message + hint for known cases (name exists, mosaicod unreachable, no write
+  permission); "nothing was kept" only when data had been uploaded.
+- [x] Default `on_error=Delete` (`IngestRequest.keep_partial=False`); `Report` when kept (D-24).
+- [x] Top bar: "Ingesting <name> · 42 %" / "Queued: <name>" linking to the job (polled every
+  3 s, hidden when nothing runs or the database is down).
+- [x] Tests: start / confirm / redirect, job page states, cancel, SSE stream, indicator, hints,
+  Delete/Report mapping; 178 tests. Live (web + worker + mosaicod): demo bag ingested with 10
+  progress events then `done`; same name again → failed with the hint, the existing recording
+  untouched (the error comes before any write); cancel → nothing left in mosaicod; page updated
+  itself to "Completed" in Chrome through SSE.
 
 ### D-23 · Ingestion history · `todo`
 - Past runs from the database: file, recording, started, duration, result, error.

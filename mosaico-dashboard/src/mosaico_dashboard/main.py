@@ -15,7 +15,14 @@ from mosaico_dashboard.gateway.base import MosaicoGateway
 from mosaico_dashboard.logging_config import setup_logging
 from mosaico_dashboard.settings import Settings, get_settings
 from mosaico_dashboard.web import health
-from mosaico_dashboard.web.pages import export, ingest, overview, recordings, status
+from mosaico_dashboard.web.pages import (
+    export,
+    ingest,
+    ingest_jobs,
+    overview,
+    recordings,
+    status,
+)
 
 STATIC_DIR = Path(__file__).parent / "web" / "static"
 
@@ -55,6 +62,7 @@ def create_app(
     app.include_router(status.router)
     app.include_router(recordings.router)
     app.include_router(ingest.router)
+    app.include_router(ingest_jobs.router)
     app.include_router(export.router)
 
     return app

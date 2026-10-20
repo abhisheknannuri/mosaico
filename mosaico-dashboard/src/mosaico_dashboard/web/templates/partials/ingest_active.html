@@ -1,0 +1,6 @@
+{% if job %}
+<a href="/ingest/jobs/{{ job.id }}" title="{{ job.params.file_path }}">
+  {% include "icons/file-up.svg" %}
+  {% if job.status == "queued" %}Queued: {{ job.params.sequence_name }}{% else %}Ingesting {{ job.params.sequence_name }} · {{ (job.share_done * 100) | round | int }}%{% endif %}
+</a>
+{% endif %}

@@ -50,6 +50,7 @@ Inside the partial, in this order when present: `.stats` row → `.cards` grid �
 | `share_bar(share, title)` | A bar filled to `share` (0–1), e.g. in a table cell | storage by ontology type |
 | `bar(label, value, share, title)` | One row of a `<ul class="bar-list">`: label, bar, value, percentage; share 0–1 | — |
 | `key_values(mapping)` | Properties of one item | selected file on the Ingest page |
+| `share_bar(share)` in a table cell | progress per topic on the job page (`table.job-topics`) | ingestion job |
 | `notice(kind, title)` | Boxed message, kind `ok` / `warn` / `error`, body via `{% call %}` | dry-run result |
 | `text_field(label, name, value, hint)` | Labelled single-line input with optional hint | recording name |
 | `key_value_rows(label, name, id, rows)` | Pairs of inputs `{name}_key` / `{name}_value`; "Add" copies the last row (`addRow` in `app.js`) | metadata |
@@ -81,3 +82,15 @@ Use the Jinja filters, never format in templates by hand: `| bytes` (3 significa
 
 After any UI change: headless Chrome screenshots at 1440 px, expanded and collapsed sidebar; check
 alignment of left edges, sizes, empty states.
+
+## Buttons and live updates
+
+- `button.primary` for the main action of a step (Start ingestion); plain `button` otherwise.
+  Destructive actions ask first (`hx-confirm`).
+- `label.checkbox` for a checkbox with its label.
+- Live progress uses SSE through the htmx extension (`static/vendor/htmx-ext-sse-2.2.4.js`),
+  loaded only by pages that need it (`{% block scripts %}` in `base.html`): `hx-ext="sse"
+  sse-connect=… sse-close="done"` on the container, `sse-swap="progress"` on the part to
+  replace. Pages render without the stream once there is nothing left to update.
+- The top bar shows the active ingestion (`/ingest/active`, polled every 3 s) left of the
+  mosaicod status.

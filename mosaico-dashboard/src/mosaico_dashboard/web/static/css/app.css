@@ -105,6 +105,26 @@ button:hover {
   border-color: var(--link);
 }
 
+button.primary {
+  background: var(--link);
+  border-color: var(--link);
+  color: var(--bg);
+  font-weight: 500;
+}
+
+button.primary:hover {
+  filter: brightness(1.1);
+}
+
+label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 /* ---------- Layout: top bar, sidebar, content ---------- */
 
 .app {
@@ -163,11 +183,28 @@ button:hover {
   color: var(--text);
 }
 
+.active-ingestion {
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.active-ingestion a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--heading);
+  text-decoration: none;
+}
+
+.active-ingestion a:hover {
+  color: var(--link);
+}
+
 .daemon-status {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-left: auto;
+  margin-left: var(--space-5);
   font-size: 0.85rem;
 }
 
@@ -542,6 +579,19 @@ table.ontology-storage .bar-track {
 
 .notice-error {
   border-left-color: var(--down);
+}
+
+/* ingestion: start section under the dry run, progress per topic */
+.start-ingestion {
+  margin-top: var(--space-4);
+}
+
+table.job-topics td.share {
+  width: 35%;
+}
+
+table.job-topics .bar-track {
+  display: block;
 }
 
 /* empty_state */
