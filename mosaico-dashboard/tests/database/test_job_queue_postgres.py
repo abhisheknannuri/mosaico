@@ -19,3 +19,20 @@ def test_concurrent_claims_never_take_the_same_job(postgres_engine):
     assert a is not None and b is not None
     assert a.id != b.id
     assert third is None
+
+
+def test_only_one_worker_holds_the_lock(postgres_url):
+    from mosaico_dashboard.db.engine import create_db_engine
+    from mosaico_dashboard.db.workers import release_worker_lock, take_worker_lock
+
+    engine = create_db_engine(postgres_url)
+    first = take_worker_lock(engine)
+    second = take_worker_lock(engine)
+
+    assert first is not None
+    assert second is None
+    release_worker_lock(first)
+    third = take_worker_lock(engine)
+    assert third is not None
+    release_worker_lock(third)
+    engine.dispose()

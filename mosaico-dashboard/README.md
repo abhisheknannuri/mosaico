@@ -56,14 +56,17 @@ poetry run mosaico-dashboard
 - Health check: <http://127.0.0.1:8000/healthz>
 - API docs: <http://127.0.0.1:8000/docs>
 
-Ingestion runs in a separate worker process; start it in a second terminal:
+Ingestion runs in a separate worker process. The web app starts it with the first ingestion and
+stops it on shutdown; the bar at the top of the Ingest page shows it, with Start and Stop. It runs
+one job at a time, each in its own child process; stopping it cancels the running job and keeps
+the queued ones. To run it yourself instead, set `DASHBOARD_MANAGE_WORKER=false` and start it in
+a second terminal:
 
 ```bash
 poetry run mosaico-dashboard-worker
 ```
 
-It runs one job at a time, each in its own child process (Ctrl-C stops the worker and cancels
-the running job). The Ingest page lists the ROS bags in `DASHBOARD_INGEST_DIR` (an absolute path
+Only one worker runs at a time; a second one exits. The Ingest page lists the ROS bags in `DASHBOARD_INGEST_DIR` (an absolute path
 on this machine, set in `.env`); `DASHBOARD_INGEST_ROS_DISTRO` and `DASHBOARD_INGEST_KEEP_PARTIAL`
 set the defaults of its advanced options.
 

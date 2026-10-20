@@ -3,6 +3,7 @@
 import signal
 
 from mosaico_dashboard.db.migrate import upgrade_to_head
+from mosaico_dashboard.db.workers import release_worker_lock, take_worker_lock
 from mosaico_dashboard.factories import build_engine
 from mosaico_dashboard.jobs.worker import Worker
 from mosaico_dashboard.logging_config import get_logger, setup_logging
@@ -20,6 +21,11 @@ def run() -> None:
         except Exception as error:
             logger.warning("Database migrations not applied (%s)", error)
     engine = build_engine(settings)
+    lock = take_worker_lock(engine)
+    if lock is None:
+        logger.info("Another worker is already running; exiting")
+        engine.dispose()
+        return
     worker = Worker(engine, settings.worker_poll_seconds)
     signal.signal(signal.SIGTERM, lambda *_: worker.stop())
     signal.signal(signal.SIGINT, lambda *_: worker.stop())
@@ -27,6 +33,7 @@ def run() -> None:
     try:
         worker.run()
     finally:
+        release_worker_lock(lock)
         engine.dispose()
         logger.info("Worker stopped")
 

@@ -20,6 +20,7 @@
   --warn: hsl(40, 90%, 60%);
   --orange-low: hsl(12, 88%, 39%);
   --purple-low: hsl(304, 54%, 32%);
+  --blue: hsl(195, 76%, 43%);
   --blue-low: hsl(195, 76%, 28%);
   --brand-gradient: linear-gradient(90deg, var(--orange-low), var(--purple-low), var(--blue-low));
 
@@ -698,20 +699,28 @@ table.job-topics .bar-track {
 
 /* ingest page: activity bar, tabs, workspace (files | splitter | detail) */
 .activity-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-height: 48px;
-  padding: var(--space-2) var(--space-4);
   margin-bottom: var(--space-4);
   border: 1px solid var(--border);
   background: var(--bg-hi);
   font-size: 0.9rem;
 }
 
-.activity-bar.active {
-  border-left: 2px solid var(--blue);
+.activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-1) var(--space-4);
+}
+
+.activity-row + .activity-row {
+  border-top: 1px solid var(--border);
+}
+
+.activity-actions button,
+.activity-actions .button-link {
+  padding: 5px 12px;
 }
 
 .activity-line {
@@ -719,16 +728,6 @@ table.job-topics .bar-track {
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-}
-
-.activity-line strong {
-  color: var(--heading);
-  font-weight: 500;
-}
-
-.activity-percent {
-  font-family: var(--mono);
-  color: var(--heading);
 }
 
 .tabs {

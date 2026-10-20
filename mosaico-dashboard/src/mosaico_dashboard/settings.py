@@ -27,8 +27,9 @@ class Settings(BaseSettings):
     )
     migrate_on_start: bool = True
 
-    # Worker
+    # Worker: polling interval; whether the web app starts and stops it
     worker_poll_seconds: float = 1.0
+    manage_worker: bool = True
 
     # Ingestion: folder on this machine with the ROS bags to ingest, and form defaults
     ingest_dir: Path | None = None

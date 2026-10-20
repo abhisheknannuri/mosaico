@@ -1,6 +1,16 @@
 """Table definitions (SQLAlchemy Core). Portable types, so tests can use SQLite."""
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, MetaData, String, Table, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    Text,
+)
 
 metadata = MetaData()
 
@@ -17,4 +27,14 @@ job = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("started_at", DateTime(timezone=True)),
     Column("finished_at", DateTime(timezone=True)),
+)
+
+worker = Table(
+    "worker",
+    metadata,
+    Column("name", String(40), primary_key=True),
+    Column("pid", Integer),
+    Column("started_at", DateTime(timezone=True)),
+    Column("heartbeat_at", DateTime(timezone=True)),
+    Column("stop_requested", Boolean, nullable=False, default=False),
 )

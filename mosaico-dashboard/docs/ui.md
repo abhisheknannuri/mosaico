@@ -94,8 +94,8 @@ alignment of left edges, sizes, empty states.
   loaded only by pages that need it (`{% block scripts %}` in `base.html`): `hx-ext="sse"
   sse-connect=… sse-close="done"` on the container, `sse-swap="progress"` on the part to
   replace. Pages render without the stream once there is nothing left to update.
-- The top bar shows the active ingestion (`/ingest/active`, polled every 3 s) left of the
-  mosaicod status.
+- The top bar shows the active ingestion (`/ingest/active`, polled every 3 s while a job is
+  active, else every 30 s) left of the mosaicod status.
 
 ## Look (D-25a, after mosaico.dev)
 
@@ -107,8 +107,11 @@ alignment of left edges, sizes, empty states.
 
 ## Ingest page
 
-- `.activity-bar` (top): one line per background process, polled by the server's own
-  interval (2 s active, 15 s idle). `.status-dot.running` pulses, `.idle` is grey.
+- `.activity-bar` (top): one `.activity-row` per background process (worker; watchdog later),
+  text left in `.activity-line`, buttons right in `.activity-actions`. The running ingestion is
+  shown only in the top bar (every page). Polled by the server's own interval (2 s while a job
+  is active or the worker is starting / stopping, 15 s otherwise). `.status-dot.ok` green
+  (running), `.running` blue and pulsing, `.idle` grey.
 - `.tabs`: links with `hx-get`/`hx-push-url` that swap `#ingest-tab`; the current tab has
   `aria-current="page"`.
 - `.workspace`: grid `files | splitter | detail`, as tall as the window; the file panel width

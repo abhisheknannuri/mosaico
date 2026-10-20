@@ -272,18 +272,16 @@ def test_detail_panel_for_a_file(bags):
 
 def test_activity_bar(bags):
     client = make(bags)
-    assert "Idle" in client.get("/ingest/activity").text
-    assert "every 15s" in client.get("/ingest/activity").text
+    idle = client.get("/ingest/activity").text
+    assert "Worker" in idle and "every 15s" in idle
+    assert "Ingesting" not in idle
 
-    job = enqueue_ingestion(engine_of(client), REQUEST)
     enqueue_ingestion(engine_of(client), REQUEST)
     with engine_of(client).begin() as c:
         claim_next(c)
 
     text = client.get("/ingest/activity").text
-    assert "Ingesting" in text and "drive__mcap" in text
-    assert "1 more queued" in text
-    assert f'hx-get="/ingest/detail?job={job.id}"' in text
+    assert "Ingesting" not in text
     assert "every 2s" in text
     assert 'id="ingest-activity"' in client.get("/ingest").text
 
@@ -294,3 +292,50 @@ def test_search_box_and_counts(bags):
     assert 'oninput="filterFiles(this)"' in text
     assert 'data-name="drive.mcap"' in text
     assert "1 files" in text
+
+
+def managed(folder, processes) -> TestClient:
+    app = create_app(
+        Settings(ingest_dir=folder, manage_worker=True),
+        gateway=FakeGateway(dry_run_topics=sample_dry_run()[:2]),
+        engine=memory_engine(),
+        processes=processes,  # type: ignore[arg-type]
+    )
+    return TestClient(app)
+
+
+def test_first_ingestion_starts_the_worker(bags, fake_processes):
+    processes = fake_processes
+    client = managed(bags, processes)
+
+    client.post("/ingest/start", data=FORM)
+
+    assert processes.started == ["worker"]
+    assert "starting" in client.get("/ingest/activity").text
+
+
+def test_worker_controls_in_the_activity_bar(bags, fake_processes):
+    from mosaico_dashboard.db.workers import register_worker
+
+    processes = fake_processes
+    client = managed(bags, processes)
+    idle = client.get("/ingest/activity").text
+    assert 'hx-post="/ingest/worker/start"' in idle
+
+    client.post("/ingest/worker/start")
+    assert processes.started == ["worker"]
+
+    with engine_of(client).begin() as c:
+        register_worker(c, 4242)
+    running = client.get("/ingest/activity").text
+    assert "pid 4242" in running and 'hx-post="/ingest/worker/stop"' in running
+
+    stopping = client.post("/ingest/worker/stop").text
+    assert "stopping…" in stopping
+
+
+def test_no_worker_controls_when_the_worker_is_not_managed(bags):
+    text = make(bags).get("/ingest/activity").text
+
+    assert "/ingest/worker/" not in text
+    assert "not running" in text

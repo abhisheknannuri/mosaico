@@ -1,5 +1,6 @@
 """Worker loop: claim the oldest queued job and run it in a child process."""
 
+import os
 import signal
 import subprocess
 import sys
@@ -11,12 +12,14 @@ from sqlalchemy import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from mosaico_dashboard.db.jobs import claim_next, fail_interrupted, finish, get_job
+from mosaico_dashboard.db.workers import heartbeat, register_worker, unregister_worker
 from mosaico_dashboard.domain.models import Job
 from mosaico_dashboard.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 CHECK_SECONDS = 0.5
+HEARTBEAT_SECONDS = 2.0
 KILL_AFTER_SECONDS = 60.0
 
 
@@ -36,6 +39,7 @@ class Worker:
         self._command = command
         self._stop = threading.Event()
         self._database_ok = True
+        self._last_heartbeat = 0.0
 
     def stop(self) -> None:
         self._stop.set()
@@ -44,11 +48,39 @@ class Worker:
         try:
             with self._engine.begin() as connection:
                 interrupted = fail_interrupted(connection)
+                register_worker(connection, os.getpid())
             if interrupted:
                 logger.warning("Marked %d interrupted job(s) as failed", interrupted)
         except SQLAlchemyError as error:
             logger.warning("Database unavailable at start: %s", error)
+        try:
+            self._loop()
+        finally:
+            try:
+                with self._engine.begin() as connection:
+                    unregister_worker(connection)
+            except SQLAlchemyError:
+                pass
+
+    def _heartbeat(self, force: bool = False) -> None:
+        """Tells the dashboard the worker is alive; stops when a stop was requested."""
+        if not force and time.monotonic() - self._last_heartbeat < HEARTBEAT_SECONDS:
+            return
+        self._last_heartbeat = time.monotonic()
+        try:
+            with self._engine.begin() as connection:
+                stop_requested = heartbeat(connection)
+        except SQLAlchemyError:
+            return
+        if stop_requested and not self._stop.is_set():
+            logger.info("Stop requested from the dashboard")
+            self.stop()
+
+    def _loop(self) -> None:
         while not self._stop.is_set():
+            self._heartbeat(force=True)
+            if self._stop.is_set():
+                break
             try:
                 worked = self.run_once()
                 if not self._database_ok:
@@ -91,6 +123,7 @@ class Worker:
         process = subprocess.Popen(self._command(job.id), start_new_session=True)
         interrupted_at: float | None = None
         while process.poll() is None:
+            self._heartbeat()
             if interrupted_at is None and (
                 self._stop.is_set() or self._cancel_requested(job.id)
             ):

@@ -3,23 +3,32 @@
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 from mosaico_dashboard.domain.models import IngestOptions
 from mosaico_dashboard.gateway.base import MosaicoGateway
 from mosaico_dashboard.services.ingestion import (
     dry_run_ingestion,
     find_bag_file,
+    get_active_ingestion,
     get_ingest_folder,
     get_ingestion,
-    get_ingestion_activity,
     list_ingestions,
     start_ingestion,
+)
+from mosaico_dashboard.services.processes import ProcessManager
+from mosaico_dashboard.services.worker import (
+    WORKER_NAME,
+    ensure_worker,
+    stop_worker,
+    worker_status,
 )
 from mosaico_dashboard.settings import Settings
 from mosaico_dashboard.web.dependencies import (
     get_app_settings,
     get_engine,
     get_gateway,
+    get_processes,
 )
 from mosaico_dashboard.web.pages.ingest_jobs import job_context
 from mosaico_dashboard.web.rendering import render, templates
@@ -43,12 +52,20 @@ def form_options(
     )
 
 
-def activity_context(engine: Engine) -> dict:
-    activity = get_ingestion_activity(engine)
-    if activity is None:
-        return {"activity_available": False, "active_job": None, "queued": 0}
-    job, queued = activity
-    return {"activity_available": True, "active_job": job, "queued": queued}
+def activity_context(request: Request, engine: Engine) -> dict:
+    settings: Settings = request.app.state.settings
+    processes: ProcessManager = request.app.state.processes
+    status = worker_status(engine)
+    try:
+        job = get_active_ingestion(engine) if status else None
+    except SQLAlchemyError:
+        job = None
+    return {
+        "worker": status,
+        "worker_starting": processes.is_alive(WORKER_NAME),
+        "manage_worker": settings.manage_worker,
+        "active_job": job,
+    }
 
 
 def detail_context(
@@ -73,7 +90,7 @@ def detail_context(
 
 def page(request: Request, tab: str, context: dict, engine: Engine) -> HTMLResponse:
     context |= {"tab": tab, "tab_template": f"partials/ingest_{tab}.html"}
-    context |= activity_context(engine)
+    context |= activity_context(request, engine)
     return render(request, "pages/ingest.html", f"partials/ingest_{tab}.html", context)
 
 
@@ -126,8 +143,24 @@ def detail(
 @router.get("/ingest/activity", response_class=HTMLResponse)
 def activity(request: Request, engine: Engine = Depends(get_engine)) -> HTMLResponse:
     return templates.TemplateResponse(
-        request, "partials/ingest_activity.html", activity_context(engine)
+        request, "partials/ingest_activity.html", activity_context(request, engine)
     )
+
+
+@router.post("/ingest/worker/start", response_class=HTMLResponse)
+def worker_start(
+    request: Request,
+    engine: Engine = Depends(get_engine),
+    processes: ProcessManager = Depends(get_processes),
+) -> HTMLResponse:
+    ensure_worker(engine, processes)
+    return activity(request, engine)
+
+
+@router.post("/ingest/worker/stop", response_class=HTMLResponse)
+def worker_stop(request: Request, engine: Engine = Depends(get_engine)) -> HTMLResponse:
+    stop_worker(engine)
+    return activity(request, engine)
 
 
 @router.post("/ingest/dry-run", response_class=HTMLResponse)
@@ -178,8 +211,10 @@ def start(
     gateway: MosaicoGateway = Depends(get_gateway),
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
+    processes: ProcessManager = Depends(get_processes),
 ) -> HTMLResponse:
-    """Queues the job and shows it in the right panel; otherwise shows why not."""
+    """Queues the job (starting the worker if needed) and shows it in the right panel;
+    otherwise shows why not."""
     folder = get_ingest_folder(gateway, settings.ingest_dir)
     selected = find_bag_file(folder, file)
     if selected is None:
@@ -206,6 +241,8 @@ def start(
         return templates.TemplateResponse(
             request, "partials/ingest_dry_run.html", context
         )
+    if settings.manage_worker:
+        ensure_worker(engine, processes)
     context = {"detail_job": job, "selected": selected} | job_context(job)
     response = templates.TemplateResponse(
         request, "partials/ingest_detail.html", context

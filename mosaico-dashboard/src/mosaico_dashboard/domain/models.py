@@ -271,3 +271,13 @@ class IngestOptions(DomainModel):
     keep_partial: bool = False
     update_if_exists: bool = False
     topics: list[str] | None = None
+
+
+class WorkerStatus(DomainModel):
+    """The background worker as last reported by its heartbeat."""
+
+    running: bool
+    pid: int | None = None
+    started_at: datetime | None = None
+    heartbeat_at: datetime | None = None
+    stop_requested: bool = False

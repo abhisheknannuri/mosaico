@@ -499,10 +499,16 @@ hooks were already done in D-01.)
   splitter width remembered in the browser. Global restyle (tokens: near-black, 1 px lines,
   square corners, uppercase buttons, white primary, mono labels, dark thin scrollbars).
   Polling: activity bar 2 s active / 15 s idle, top bar 3 s / 30 s. 203 tests.
-- [ ] **D-25b Worker on demand.** The first Ingest starts the worker if it isn't running; the
+- [x] **D-25b Worker on demand** (built 2026-10-20, in review). The first Ingest starts the worker if it isn't running; the
   web app tracks it (child process) and stops it on exit; the activity bar shows it with
   Stop / Start; stopping while ingesting asks first, cancels the running job cleanly, keeps
   queued jobs. In compose the worker stays its own service (setting).
+  Done: table `worker` (pid, heartbeat every 2 s, stop request; running = heartbeat < 10 s),
+  advisory lock so only one worker runs, `ProcessManager` in services (processes by name, own
+  session, SIGTERM on shutdown); activity bar shows the worker only (the job is in the top bar);
+  routes `POST /ingest/worker/start|stop`, `DASHBOARD_MANAGE_WORKER` (false in compose and
+  tests). Fix found in screenshots: `--blue` token was missing, so the running dot and the
+  active bar border were invisible. 215 tests.
 - [ ] **D-25c Folder browse dialog.** Storage icon opens a dialog listing folders on this
   machine; the path can also be typed; saved in the dashboard database (`.env` is the
   default), shared by Manual and Watchdog (replaces D-29).

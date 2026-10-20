@@ -13,6 +13,7 @@ from sqlalchemy import Engine
 from mosaico_dashboard.factories import build_engine, build_gateway
 from mosaico_dashboard.gateway.base import MosaicoGateway
 from mosaico_dashboard.logging_config import setup_logging
+from mosaico_dashboard.services.processes import ProcessManager
 from mosaico_dashboard.settings import Settings, get_settings
 from mosaico_dashboard.web import health
 from mosaico_dashboard.web.pages import (
@@ -35,14 +36,17 @@ def create_app(
     settings: Settings,
     gateway: MosaicoGateway | None = None,
     engine: Engine | None = None,
+    processes: ProcessManager | None = None,
 ) -> FastAPI:
     setup_logging(settings.log_level, settings.log_format)
     gateway = gateway or build_gateway(settings)
     engine = engine or build_engine(settings)
+    processes = processes or ProcessManager()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
+        processes.stop_all()
         gateway.close()
         engine.dispose()
 
@@ -56,6 +60,7 @@ def create_app(
     app.state.gateway = gateway
     app.state.engine = engine
     app.state.settings = settings
+    app.state.processes = processes
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health.router)
     app.include_router(overview.router)

@@ -108,6 +108,7 @@ services:
       DASHBOARD_MOSAICO_HOST: mosaicod-server
       DASHBOARD_MOSAICO_PORT: "6726"
       DASHBOARD_DATABASE_URL: postgresql+psycopg://dashboard:dashboard@dashboard-db:5432/dashboard
+      DASHBOARD_MANAGE_WORKER: "false"
       # Keep container-to-container gRPC off any HTTP proxy.
       NO_PROXY: mosaicod-server,localhost,127.0.0.1
       no_proxy: mosaicod-server,localhost,127.0.0.1

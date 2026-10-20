@@ -39,6 +39,7 @@ flowchart LR
         WORKER["Worker<br/>mosaico-dashboard-worker"]
         CHILD["Job process<br/>(one per job)"]
         DDB[("dashboard-db<br/>Postgres, port 5433")]
+        WEB -.->|"starts on demand, stops"| WORKER
         WORKER -->|starts| CHILD
         WEB --- DDB
         WORKER --- DDB
@@ -64,10 +65,16 @@ flowchart LR
 | Process | Command (dev) / container | Started by | Lifetime | Connections |
 | --- | --- | --- | --- | --- |
 | Web app | `poetry run mosaico-dashboard` / `dashboard` | the user (or compose) | long-running | one shared SDK client to mosaicod (read), engine to dashboard-db |
-| Worker | `poetry run mosaico-dashboard-worker` / `dashboard-worker` | the user (or compose), independently of the web app | long-running, idle between jobs | dashboard-db only |
+| Worker | `python -m mosaico_dashboard.run_worker` (`poetry run mosaico-dashboard-worker`) / `dashboard-worker` | the web app, on the first ingestion or Start (`DASHBOARD_MANAGE_WORKER=true`); otherwise the user or compose | until stopped: Stop on the Ingest page, web app shutdown, Ctrl-C / SIGTERM | dashboard-db only |
 | Job process | `python -m mosaico_dashboard.jobs.run_job <job id>` | the worker, one per job | one job, then exits | its own SDK connection (ingest) and engine, closed at the end |
 
-- Web app and worker never call each other: they only share the `job` table.
+- Web app and worker never call each other: they share the `job` and `worker` tables. The web
+  app only starts the worker process (`services/processes.py`: `ProcessManager`, processes by
+  name, own session) and sends SIGTERM to it on shutdown; Stop on the Ingest page sets `worker.stop_requested` (ADR-0040).
+- One worker at a time: it holds a Postgres advisory lock (7202611) while it runs; a second one
+  logs "Another worker is already running" and exits.
+- The worker writes a heartbeat to `worker` every 2 s. The web app shows it as running while the
+  heartbeat is less than 10 s old.
 - Both apply database migrations on start (`DASHBOARD_MIGRATE_ON_START`), under a Postgres
   advisory lock, so they can start in any order. If the database is down, both start anyway:
   the web app keeps serving the catalog pages (they only need mosaicod), the worker retries.
@@ -85,6 +92,7 @@ PostgreSQL 18 (`dashboard-db`), accessed with SQLAlchemy Core and psycopg 3, syn
 | --- | --- |
 | `0d9a3c5e7b21` | baseline (empty schema) |
 | `b0a46eb62c9d` | table `job` |
+| `b4a3c9872c17` | table `worker` |
 
 ### Tables
 
@@ -101,6 +109,13 @@ erDiagram
         timestamptz created_at "queued"
         timestamptz started_at "claimed by the worker"
         timestamptz finished_at "completed / failed / cancelled"
+    }
+    worker {
+        varchar(40) name PK "worker (watchdog later)"
+        integer pid "null when not running"
+        timestamptz started_at
+        timestamptz heartbeat_at "every 2 s while running"
+        boolean stop_requested "set by Stop, cleared on start"
     }
 ```
 
@@ -123,6 +138,7 @@ stateDiagram-v2
     running --> cancelled: Cancel → flag → worker sends SIGINT
     running --> failed: error (message stored)
     running --> failed: job process exits without an outcome (exit code)
+    running --> cancelled: worker stopped (Stop, shutdown)
     running --> failed: worker restarted while running ("Interrupted")
     completed --> [*]
     failed --> [*]
@@ -140,7 +156,12 @@ sequenceDiagram
     participant M as mosaicod
 
     W->>DB: insert job (queued)
+    opt no worker heartbeat in the last 10 s
+        W->>K: start python -m …run_worker
+        K->>DB: register (pid, heartbeat)
+    end
     loop every DASHBOARD_WORKER_POLL_SECONDS
+        K->>DB: heartbeat, stop_requested?
         K->>DB: claim oldest queued (SKIP LOCKED) → running
     end
     K->>J: start python -m …run_job <id>
@@ -158,13 +179,18 @@ sequenceDiagram
     K->>DB: still running? → failed with exit code
 ```
 
-The Ingest page (`/ingest`) lists the bags in `DASHBOARD_INGEST_DIR`, shows the options for the
-selected one and runs a dry run in the web process (`POST /ingest/dry-run`). "Start" checks
-and dry-runs again, queues the job and redirects to `/ingest/jobs/<id>`. That page follows the
-job through server-sent events: an async endpoint reads the job row every 0.5 s (in the thread
-pool) and sends the progress HTML when it changed, then `done` and closes. The top bar polls
-`/ingest/active` every 3 s. The Ingest page also lists the last 20 ingestion jobs from the
-`job` table ("Recent ingestions").
+The Ingest page (`/ingest`) has three tabs: Manual ingest, Watchdog (placeholder) and History
+(last 20 ingestion jobs). Manual ingest lists the bags in `DASHBOARD_INGEST_DIR` on the left;
+the right panel (`/ingest/detail`) shows the selected file's options and runs a dry run in the
+web process (`POST /ingest/dry-run`). "Ingest" checks and dry-runs again, queues the job, starts
+the worker if none is running and swaps the right panel to the job (URL `/ingest?job=<id>`).
+The panel follows the job through server-sent events: an async endpoint reads the job row every
+0.5 s (in the thread pool) and sends the progress HTML when it changed, then `done` and closes.
+
+The activity bar above the tabs (`/ingest/activity`) shows the worker (running, starting, not
+running; Start / Stop); the running or queued job is shown in the top bar. The activity bar polls every 2 s while something is
+happening, else every 15 s. The top bar polls `/ingest/active` every 3 s while a job is active,
+else every 30 s.
 
 ```mermaid
 sequenceDiagram
@@ -174,7 +200,8 @@ sequenceDiagram
     B->>W: POST /ingest/start (form)
     W->>W: check + dry run (SDK)
     W->>DB: insert job (queued)
-    W-->>B: HX-Redirect /ingest/jobs/<id>
+    W->>W: start the worker if not running
+    W-->>B: job panel (HX-Retarget #ingest-detail, HX-Push-Url /ingest?job=<id>)
     B->>W: GET /ingest/jobs/<id>/events (SSE)
     loop every 0.5 s until finished
         W->>DB: read job
@@ -199,9 +226,9 @@ mosaico-dashboard/
 │   ├── make_demo_bags.py     # synthetic ROS 2 demo bags → demo-data/ (git-ignored)
 │   └── seed_demo.py          # ingest missing demo bags into mosaicod
 ├── src/mosaico_dashboard/
-│   ├── main.py               # create_app(settings, gateway, engine) and the ASGI `app`
+│   ├── main.py               # create_app(settings, gateway, engine, processes) and the ASGI `app`
 │   ├── __main__.py           # web command: migrate, then uvicorn
-│   ├── run_worker.py         # worker command: migrate, then the worker loop
+│   ├── run_worker.py         # worker command: migrate, take the worker lock, run the loop
 │   ├── settings.py           # configuration from env / .env (DASHBOARD_*)
 │   ├── logging_config.py     # one console handler for dashboard, uvicorn and SDK logs
 │   ├── factories.py          # build gateway and engine from settings (all processes)
@@ -211,16 +238,17 @@ mosaico-dashboard/
 │   │   ├── engine.py         # engine (2 s connect timeout), ping
 │   │   ├── tables.py         # table definitions (SQLAlchemy Core)
 │   │   ├── jobs.py           # job queue: enqueue, claim, progress, finish, cancel
+│   │   ├── workers.py        # worker row: register, heartbeat, stop request, advisory lock
 │   │   ├── common.py         # helpers (UTC times from SQLite)
 │   │   ├── migrate.py        # upgrade_to_head under an advisory lock
 │   │   └── migrations/       # Alembic: env.py, script.py.mako, versions/
 │   ├── jobs/
-│   │   ├── worker.py         # Worker: claim, start the job process, cancel, outcome
+│   │   ├── worker.py         # Worker: heartbeat, claim, start the job process, cancel, outcome
 │   │   └── run_job.py        # job process entry point
-│   ├── services/             # use cases: overview, recordings, status, ingestion
+│   ├── services/             # use cases: overview, recordings, status, ingestion, worker, processes
 │   └── web/
 │       ├── health.py         # /healthz, /readyz
-│       ├── dependencies.py   # get_gateway, get_engine
+│       ├── dependencies.py   # get_gateway, get_engine, get_processes
 │       ├── rendering.py      # Jinja2 setup, filters, render(): page or htmx fragment
 │       ├── pages/            # HTML routes: overview, recordings, ingest, export, status
 │       ├── api/              # JSON routes under /api/v1 (none yet)
@@ -240,7 +268,7 @@ mosaico-dashboard/
 | `gateway/` | `MosaicoGateway` Protocol, SDK implementation, fake for tests; converts SDK objects into domain models | `domain`, `mosaicolabs` | `db`, `services`, `web`, `jobs` |
 | `db/` | Engine, tables, repositories, migrations | `domain`, SQLAlchemy, Alembic | `gateway`, `services`, `web`, `jobs`, SDK |
 | `services/` | Use cases, used by web routes and the job process | `domain`, `gateway`, `db` | `web`, `jobs`, FastAPI, SDK |
-| `web/` | HTML pages, JSON API, templates, static files | everything below, FastAPI, Jinja2 | `jobs`, SDK |
+| `web/` | HTML pages, JSON API, templates, static files | everything below, `settings`, FastAPI, Jinja2 | `jobs`, SDK |
 | `jobs/` | Worker loop and job process entry | everything below | `web`, SDK |
 | package root | `main.py`, `__main__.py`, `run_worker.py`, `factories.py`, settings, logging | everything | |
 

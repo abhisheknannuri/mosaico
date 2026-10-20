@@ -10,8 +10,10 @@ from mosaico_dashboard.db.tables import metadata
 
 @pytest.fixture(autouse=True)
 def isolated_from_local_env(tmp_path, monkeypatch):
-    """Run every test in an empty directory, so a developer's `.env` is never read."""
+    """Run every test in an empty directory, so a developer's `.env` is never read; the
+    web app never starts a real worker."""
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("DASHBOARD_MANAGE_WORKER", "false")
 
 
 @pytest.fixture(autouse=True)
@@ -41,3 +43,23 @@ def sqlite_file(tmp_path) -> Path:
     metadata.create_all(engine)
     engine.dispose()
     return path
+
+
+class FakeProcesses:
+    def __init__(self):
+        self.started: list[str] = []
+
+    def is_alive(self, name: str) -> bool:
+        return name in self.started
+
+    def start(self, name: str) -> None:
+        if name not in self.started:
+            self.started.append(name)
+
+    def stop_all(self) -> None:
+        self.started.clear()
+
+
+@pytest.fixture
+def fake_processes() -> FakeProcesses:
+    return FakeProcesses()

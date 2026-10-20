@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import Connection, RowMapping, func, select, update
+from sqlalchemy import Connection, RowMapping, select, update
 
 from mosaico_dashboard.db.common import utc
 from mosaico_dashboard.db.tables import job
@@ -137,11 +137,3 @@ def active_job(connection: Connection) -> Job | None:
         .first()
     )
     return _to_job(row) if row else None
-
-
-def count_jobs(connection: Connection, kind: str, status: JobStatus) -> int:
-    return connection.execute(
-        select(func.count())
-        .select_from(job)
-        .where(job.c.kind == kind, job.c.status == status)
-    ).scalar_one()
