@@ -24,7 +24,7 @@
         <img src="/static/img/mosaico-logo.svg" alt="Mosaico">
         <span>Dashboard</span>
       </a>
-      <div class="active-ingestion" hx-get="/ingest/active" hx-trigger="load, every 3s"></div>
+      <div class="active-ingestion" hx-get="/ingest/active" hx-trigger="load" hx-swap="outerHTML"></div>
       <div class="daemon-status" hx-get="/status" hx-trigger="load, every 30s"></div>
     </header>
 

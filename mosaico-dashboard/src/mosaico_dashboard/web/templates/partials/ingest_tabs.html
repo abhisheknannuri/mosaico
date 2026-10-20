@@ -1,0 +1,6 @@
+{% set tabs = [("manual", "Manual ingest", "/ingest"), ("watchdog", "Watchdog", "/ingest/watchdog"), ("history", "History", "/ingest/history")] %}
+<nav class="tabs" aria-label="Ingest">
+  {% for key, label, url in tabs %}
+  <a href="{{ url }}" hx-get="{{ url }}" hx-target="#ingest-tab" hx-swap="outerHTML" hx-push-url="true"{% if key == tab %} aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>

@@ -96,3 +96,23 @@ alignment of left edges, sizes, empty states.
   replace. Pages render without the stream once there is nothing left to update.
 - The top bar shows the active ingestion (`/ingest/active`, polled every 3 s) left of the
   mosaicod status.
+
+## Look (D-25a, after mosaico.dev)
+
+- Near-black background, 1 px lines (`--border`, `--border-strong`), square corners
+  (`--radius: 0`); panels in a workspace share their borders.
+- Buttons: uppercase with letter spacing; `button.primary` is solid white with dark text,
+  plain buttons and `.button-link` are outlined. Small monospace labels: `.label`.
+- Thin dark scrollbars everywhere; search matches use `<mark>`.
+
+## Ingest page
+
+- `.activity-bar` (top): one line per background process, polled by the server's own
+  interval (2 s active, 15 s idle). `.status-dot.running` pulses, `.idle` is grey.
+- `.tabs`: links with `hx-get`/`hx-push-url` that swap `#ingest-tab`; the current tab has
+  `aria-current="page"`.
+- `.workspace`: grid `files | splitter | detail`, as tall as the window; the file panel width
+  is `--files-width` (drag the `.splitter`, saved in `localStorage`).
+- `.files-panel`: `.folder-bar`, `.file-search` (`filterFiles`), `.file-list` (rows with
+  `data-name`; selectable rows load `#ingest-detail`).
+- `.detail-panel`: `.panel-title` (label + title), compact `.stats` cells, `.actions`.

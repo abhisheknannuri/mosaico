@@ -477,13 +477,36 @@ hooks were already done in D-01.)
   noted for the upstream Discussion (D-34). mosaicod reports 0 bytes for the kept partial
   recording.
 
-### D-25 · Ingest UI: more intuitive, richer, more immersive · `todo`
-- Iterate on the web UI components of the Ingest and job pages until the flow (pick a file →
-  dry run → start → follow → result) feels clear and engaging; scope and ideas agreed step by
-  step before building.
-- Noted: the top-bar indicator polls `/ingest/active` every 3 s on every page (one access-log
-  line each). Poll fast only while an ingestion is active (e.g. 30 s when idle, the server
-  choosing the interval in its response), and keep these requests out of the access log.
+### D-25 · Ingest UI: more intuitive, richer, more immersive · `doing`
+- Iterate on the web UI components of the Ingest page until the flow (pick a file → dry run →
+  start → follow → result) feels clear and engaging; agreed 2026-10-20, reviewed after each
+  iteration with screenshots.
+- Look: mosaico.dev (near-black, 1 px lines, square corners, panels sharing borders, uppercase
+  buttons with letter spacing, white primary button, small monospace labels).
+- [x] **D-25a Layout and style** (built 2026-10-20, in review). Activity bar at the top of the Ingest page (one line per
+  background process: running ingestion with View / Cancel, queued count; worker and watchdog
+  lines come with D-25b and D-30). Tabs Manual ingest (default) | Watchdog | History, switched
+  without leaving the page. Manual: resizable split; left = folder bar (icon + path from
+  `.env`, or how to set it), instant search with highlighted matches, file list as tall as the
+  window and scrolling; right = selected file (info, options, Dry run, Ingest) or the running
+  job's live progress. Watchdog tab: same left panel, right = status + Start button
+  (placeholder, no backend). History tab: full-width table. Polling: fast only while
+  something is active (top bar and activity bar), not every 3 s when idle.
+  Done: routes `/ingest`, `/ingest/watchdog`, `/ingest/history` (tab content for htmx),
+  `/ingest/detail?file=|job=` (right panel only, keeps search and scroll), `/ingest/activity`;
+  Start swaps the live job into the right panel (`HX-Retarget`, URL `/ingest?job=…`); the old
+  job URL redirects there. Search filters client-side with `<mark>` highlights and a count;
+  splitter width remembered in the browser. Global restyle (tokens: near-black, 1 px lines,
+  square corners, uppercase buttons, white primary, mono labels, dark thin scrollbars).
+  Polling: activity bar 2 s active / 15 s idle, top bar 3 s / 30 s. 203 tests.
+- [ ] **D-25b Worker on demand.** The first Ingest starts the worker if it isn't running; the
+  web app tracks it (child process) and stops it on exit; the activity bar shows it with
+  Stop / Start; stopping while ingesting asks first, cancels the running job cleanly, keeps
+  queued jobs. In compose the worker stays its own service (setting).
+- [ ] **D-25c Folder browse dialog.** Storage icon opens a dialog listing folders on this
+  machine; the path can also be typed; saved in the dashboard database (`.env` is the
+  default), shared by Manual and Watchdog (replaces D-29).
+- [ ] Further polish rounds as needed.
 
 ## Phase 3: Export (production grade)
 
@@ -497,7 +520,7 @@ hooks were already done in D-01.)
 ## Phase 4: Ingest and export, later
 
 ### D-28 · Several files in one go (in sequence) · `todo`
-### D-29 · Change the ingest folder from the UI (without restarting) · `todo`
+### D-29 · Change the ingest folder from the UI (without restarting) · `dropped` (part of D-25c)
 ### D-30 · Watchdog mode: watch the ingest folder in the worker (SDK `Watchdog`, daemon) · `todo`
 - Keeps running while the user is on other pages; its `.already_loaded.txt` /
   `.quarantine_file.txt` live in the watched folder.

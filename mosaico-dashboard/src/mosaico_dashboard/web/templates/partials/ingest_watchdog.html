@@ -1,0 +1,21 @@
+{% import "components.html" as ui %}
+<section id="ingest-tab">
+  {% include "partials/ingest_tabs.html" %}
+  <div class="workspace">
+    {% with selectable = false %}{% include "partials/ingest_files_panel.html" %}{% endwith %}
+    <div class="splitter" role="separator" aria-orientation="vertical" aria-label="Resize" onmousedown="startResize(event)"></div>
+    <div class="panel detail-panel">
+      <div class="panel-title">
+        <span class="label">Watchdog</span>
+        <h2>Ingest new files automatically</h2>
+        <p class="muted">Watches the folder on the left and ingests every new bag, one at a time, with the default options.</p>
+      </div>
+      {{ ui.key_values({"Status": "Not running", "Folder": folder.path or "—"}) }}
+      <div class="actions">
+        <button type="button" class="primary" disabled>Start watchdog</button>
+        <span class="field-hint">Coming soon.</span>
+      </div>
+      <p class="muted">While a manual ingestion runs in the same folder, the watchdog waits for it to finish; a different folder can be watched at the same time.</p>
+    </div>
+  </div>
+</section>

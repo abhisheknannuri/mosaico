@@ -26,14 +26,14 @@ def client_for(folder) -> TestClient:
 def test_without_a_folder_the_page_says_how_to_set_it(client):
     text = client.get("/ingest").text
 
-    assert "No ingest folder set" in text
+    assert "No folder set" in text
     assert "DASHBOARD_INGEST_DIR" in text
 
 
 def test_missing_folder(tmp_path):
     text = client_for(tmp_path / "nope").get("/ingest").text
 
-    assert "Ingest folder not found" in text
+    assert "doesn't exist" in text
 
 
 def test_lists_the_files_with_links(bags):
@@ -60,7 +60,7 @@ def test_selection_is_a_fragment_for_htmx(bags):
     )
 
     assert "<html" not in response.text
-    assert 'id="ingest"' in response.text
+    assert 'id="ingest-tab"' in response.text
 
 
 def test_a_file_outside_the_listing_is_not_selected(bags):

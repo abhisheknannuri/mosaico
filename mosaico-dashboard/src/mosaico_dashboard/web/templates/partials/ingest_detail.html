@@ -1,0 +1,49 @@
+{% import "components.html" as ui %}
+{% if detail_job %}
+  {% set job = detail_job %}
+  <div class="panel-title">
+    <span class="label">Ingestion</span>
+    <h2>{{ job.params.sequence_name }}</h2>
+    <p class="muted">{{ job.params.file_path }}</p>
+  </div>
+  {% include "partials/ingest_job.html" %}
+{% elif selected %}
+  <div class="panel-title">
+    <span class="label">Selected file</span>
+    <h2>{{ ui.path(selected.relative_path) }}</h2>
+  </div>
+  {{ ui.key_values({"Path": selected.path, "Size": selected.size_bytes | bytes, "Modified": selected.modified_at | datetime}) }}
+  <form id="ingest-options" hx-post="/ingest/dry-run" hx-target="#dry-run" hx-swap="innerHTML">
+    <input type="hidden" name="file" value="{{ selected.relative_path }}">
+    {{ ui.text_field("Recording name", "sequence_name", selected.recording_name, "From the file path, the same way the SDK watchdog names recordings.") }}
+    {% if selected.in_mosaico %}
+      <p class="muted">A recording with this name is already in Mosaico. Use another name, or append to it (advanced options).</p>
+    {% endif %}
+    {{ ui.key_value_rows("Metadata (optional)", "metadata", "metadata-rows") }}
+    <details class="advanced">
+      <summary>Advanced options</summary>
+      <label class="field">
+        <span class="field-label">ROS distribution</span>
+        <select name="ros_distro">
+          <option value="">Auto (message definitions from the bag)</option>
+          {% for distro in ros_distros %}
+          <option value="{{ distro }}"{% if distro == defaults.ingest_ros_distro %} selected{% endif %}>{{ distro }}</option>
+          {% endfor %}
+        </select>
+        <span class="field-hint">Needed for ROS 1 bags or bags without message definitions.</span>
+      </label>
+      <label class="checkbox"><input type="checkbox" name="keep_partial" value="true"{% if defaults.ingest_keep_partial %} checked{% endif %}> Keep partial data if the ingestion fails or is cancelled</label>
+      <label class="checkbox"><input type="checkbox" name="update_if_exists" value="true"> Append to the existing recording if the name is taken</label>
+    </details>
+    <div class="actions">
+      <button type="submit">Dry run</button>
+      <span class="field-hint">Checks which topics the SDK can ingest; nothing is written to Mosaico.</span>
+    </div>
+  </form>
+  <div id="dry-run" aria-live="polite"></div>
+{% else %}
+  <div class="detail-empty">
+    <span class="label">Manual ingest</span>
+    <p>Select a file on the left to see its details, run a dry run and ingest it.</p>
+  </div>
+{% endif %}

@@ -1,0 +1,47 @@
+{% import "components.html" as ui %}
+{# Folder, search and file list. `selectable` makes rows open the file in the right panel. #}
+<div class="panel files-panel">
+  <div class="folder-bar">
+    {% include "icons/hard-drive.svg" %}
+    {% if folder.path %}
+      <span title="{{ folder.path }}">
+        <span class="folder-name">{{ folder.path.rstrip("/").rsplit("/", 1)[-1] or folder.path }}</span>
+        <code class="folder-path">{{ folder.path }}</code>
+      </span>
+    {% else %}
+      <span class="muted">No folder set: set <code>DASHBOARD_INGEST_DIR</code> in <code>.env</code> and restart.</span>
+    {% endif %}
+  </div>
+  {% if folder.status == "missing" %}
+    <p class="panel-note">This folder doesn't exist or isn't a folder. Check <code>DASHBOARD_INGEST_DIR</code>.</p>
+  {% elif folder.status == "ok" %}
+    <div class="file-search">
+      <input type="search" placeholder="Search files" aria-label="Search files" oninput="filterFiles(this)" autocomplete="off">
+      <span class="file-count" data-total="{{ folder.files | length }}">{{ folder.files | length }} files</span>
+    </div>
+    {% if folder.files and folder.files[0].in_mosaico is none %}
+      <p class="panel-note">mosaicod is unreachable: already ingested files can't be marked.</p>
+    {% endif %}
+    <ul class="file-list">
+      {% for f in folder.files %}
+      {% set detail = "/ingest/detail?file=" ~ (f.relative_path | urlencode) %}
+      {% set url = "/ingest?file=" ~ (f.relative_path | urlencode) %}
+      <li{% if selected and f.relative_path == selected.relative_path %} aria-selected="true"{% endif %} data-name="{{ f.relative_path }}">
+        {% if selectable %}
+        <a href="{{ url }}" hx-get="{{ detail }}" hx-target="#ingest-detail" hx-push-url="{{ url }}" onclick="selectRow(this)">
+        {% else %}
+        <span class="file-row">
+        {% endif %}
+          <span class="file-name">{{ ui.path(f.relative_path) }}</span>
+          <span class="file-meta">
+            {% if f.partial %}<span class="chip warn">partial</span>{% elif f.in_mosaico %}<span class="chip ok">in Mosaico</span>{% endif %}
+            <span title="{{ f.size_bytes | bytes_exact }}">{{ f.size_bytes | bytes }}</span>
+          </span>
+        {% if selectable %}</a>{% else %}</span>{% endif %}
+      </li>
+      {% else %}
+      <li class="file-empty muted">No .mcap, .db3 or .bag files in this folder.</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

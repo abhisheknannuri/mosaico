@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.concurrency import run_in_threadpool
@@ -18,7 +18,7 @@ from mosaico_dashboard.services.ingestion import (
     get_ingestion,
 )
 from mosaico_dashboard.web.dependencies import get_engine
-from mosaico_dashboard.web.rendering import render, templates
+from mosaico_dashboard.web.rendering import templates
 
 router = APIRouter(include_in_schema=False)
 
@@ -49,16 +49,12 @@ def sse_event(event: str, data: str) -> str:
     return f"event: {event}\n{lines}\n"
 
 
-@router.get("/ingest/jobs/{job_id}", response_class=HTMLResponse)
-def job_page(
-    job_id: str, request: Request, engine: Engine = Depends(get_engine)
-) -> HTMLResponse:
-    job = get_ingestion(engine, job_id)
-    if job is None:
+@router.get("/ingest/jobs/{job_id}")
+def job_page(job_id: str, engine: Engine = Depends(get_engine)) -> RedirectResponse:
+    """Jobs are shown in the Ingest page's right panel."""
+    if get_ingestion(engine, job_id) is None:
         raise HTTPException(status_code=404, detail="Ingestion not found")
-    return render(
-        request, "pages/ingest_job.html", "partials/ingest_job.html", job_context(job)
-    )
+    return RedirectResponse(f"/ingest?job={job_id}", status_code=303)
 
 
 @router.post("/ingest/jobs/{job_id}/cancel", response_class=HTMLResponse)

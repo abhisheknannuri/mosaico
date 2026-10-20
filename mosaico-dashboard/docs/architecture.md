@@ -325,7 +325,7 @@ tests).
 | --- | --- | --- | --- | --- |
 | Ops | `web/health.py` | `/healthz` (process alive), `/readyz` (mosaicod and database, each reported; 503 if either is down) | Yes, tag `ops` | JSON |
 | JSON API | `web/api/` | `/api/v1/...` | Yes, tag per feature | JSON, Pydantic model as return type |
-| HTML pages | `web/pages/` | `/`, `/recordings`, `/ingest` (+ `POST /ingest/dry-run`, `POST /ingest/start`), `/ingest/jobs/<id>` (+ `POST …/cancel`), `/ingest/active`, `/export`, `/status` | No | Full page, or fragment for htmx |
+| HTML pages | `web/pages/` | `/`, `/recordings`, `/ingest` (+ `?file=` / `?job=`), `/ingest/watchdog`, `/ingest/history`, `/ingest/detail`, `/ingest/activity`, `POST /ingest/dry-run`, `POST /ingest/start`, `POST /ingest/jobs/<id>/cancel` (`/ingest/jobs/<id>` redirects to `/ingest?job=`), `/ingest/active`, `/export`, `/status` | No | Full page, or fragment for htmx |
 | Event stream | `web/pages/ingest_jobs.py` | `/ingest/jobs/<id>/events` | No | `text/event-stream`: `progress` (HTML), `done` |
 
 - Every documented route has a `summary` and a tag; its return type annotation is its response

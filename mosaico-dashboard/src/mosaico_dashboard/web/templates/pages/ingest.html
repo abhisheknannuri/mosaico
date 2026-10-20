@@ -3,7 +3,12 @@
 
 {% block title %}Ingest · Mosaico Dashboard{% endblock %}
 
+{% block scripts %}
+<script src="/static/vendor/htmx-ext-sse-2.2.4.js" defer></script>
+{% endblock %}
+
 {% block content %}
-{{ ui.page_header("Ingest", "Add ROS bags from this machine to Mosaico.") }}
-{% include "partials/ingest.html" %}
+{{ ui.page_header("Ingest", "Add ROS bags (.mcap, .db3, .bag) from this machine to Mosaico.") }}
+{% include "partials/ingest_activity.html" %}
+{% include tab_template %}
 {% endblock %}

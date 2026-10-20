@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from mosaico_dashboard.db.jobs import (
     active_job,
+    count_jobs,
     enqueue,
     finish,
     get_job,
@@ -211,6 +212,18 @@ def list_ingestions(engine: Engine, limit: int = HISTORY_LENGTH) -> list[Job] | 
 def get_active_ingestion(engine: Engine) -> Job | None:
     with engine.connect() as connection:
         return active_job(connection)
+
+
+def get_ingestion_activity(engine: Engine) -> tuple[Job | None, int] | None:
+    """The active ingestion and how many are queued; None when the database is down."""
+    try:
+        with engine.connect() as connection:
+            return (
+                active_job(connection),
+                count_jobs(connection, INGEST_JOB, "queued"),
+            )
+    except SQLAlchemyError:
+        return None
 
 
 _HINTS = [

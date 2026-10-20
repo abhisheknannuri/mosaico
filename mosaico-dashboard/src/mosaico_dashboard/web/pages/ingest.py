@@ -1,4 +1,4 @@
-"""Ingest page: the bags in the ingest folder and the options for the selected one."""
+"""Ingest page: tabs Manual ingest, Watchdog and History; the right panel and the activity bar."""
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
@@ -10,6 +10,8 @@ from mosaico_dashboard.services.ingestion import (
     dry_run_ingestion,
     find_bag_file,
     get_ingest_folder,
+    get_ingestion,
+    get_ingestion_activity,
     list_ingestions,
     start_ingestion,
 )
@@ -19,6 +21,7 @@ from mosaico_dashboard.web.dependencies import (
     get_engine,
     get_gateway,
 )
+from mosaico_dashboard.web.pages.ingest_jobs import job_context
 from mosaico_dashboard.web.rendering import render, templates
 
 router = APIRouter(include_in_schema=False)
@@ -40,23 +43,91 @@ def form_options(
     )
 
 
+def activity_context(engine: Engine) -> dict:
+    activity = get_ingestion_activity(engine)
+    if activity is None:
+        return {"activity_available": False, "active_job": None, "queued": 0}
+    job, queued = activity
+    return {"activity_available": True, "active_job": job, "queued": queued}
+
+
+def detail_context(
+    gateway: MosaicoGateway,
+    engine: Engine,
+    settings: Settings,
+    folder,
+    file: str | None,
+    job_id: str | None,
+) -> dict:
+    job = get_ingestion(engine, job_id) if job_id else None
+    context: dict = {
+        "selected": find_bag_file(folder, file),
+        "ros_distros": gateway.ros_distros(),
+        "defaults": settings,
+        "detail_job": job,
+    }
+    if job is not None:
+        context |= job_context(job)
+    return context
+
+
+def page(request: Request, tab: str, context: dict, engine: Engine) -> HTMLResponse:
+    context |= {"tab": tab, "tab_template": f"partials/ingest_{tab}.html"}
+    context |= activity_context(engine)
+    return render(request, "pages/ingest.html", f"partials/ingest_{tab}.html", context)
+
+
 @router.get("/ingest", response_class=HTMLResponse)
-def ingest(
+def manual(
     request: Request,
     file: str | None = None,
+    job: str | None = None,
     gateway: MosaicoGateway = Depends(get_gateway),
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
     folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
-    context = {
-        "folder": folder,
-        "selected": find_bag_file(folder, file),
-        "history": list_ingestions(engine),
-        "ros_distros": gateway.ros_distros(),
-        "defaults": settings,
-    }
-    return render(request, "pages/ingest.html", "partials/ingest.html", context)
+    context = {"folder": folder} | detail_context(
+        gateway, engine, settings, folder, file, job
+    )
+    return page(request, "manual", context, engine)
+
+
+@router.get("/ingest/watchdog", response_class=HTMLResponse)
+def watchdog(
+    request: Request,
+    gateway: MosaicoGateway = Depends(get_gateway),
+    engine: Engine = Depends(get_engine),
+    settings: Settings = Depends(get_app_settings),
+) -> HTMLResponse:
+    folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
+    return page(request, "watchdog", {"folder": folder, "selected": None}, engine)
+
+
+@router.get("/ingest/history", response_class=HTMLResponse)
+def history(request: Request, engine: Engine = Depends(get_engine)) -> HTMLResponse:
+    return page(request, "history", {"history": list_ingestions(engine)}, engine)
+
+
+@router.get("/ingest/detail", response_class=HTMLResponse)
+def detail(
+    request: Request,
+    file: str | None = None,
+    job: str | None = None,
+    gateway: MosaicoGateway = Depends(get_gateway),
+    engine: Engine = Depends(get_engine),
+    settings: Settings = Depends(get_app_settings),
+) -> HTMLResponse:
+    folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
+    context = detail_context(gateway, engine, settings, folder, file, job)
+    return templates.TemplateResponse(request, "partials/ingest_detail.html", context)
+
+
+@router.get("/ingest/activity", response_class=HTMLResponse)
+def activity(request: Request, engine: Engine = Depends(get_engine)) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request, "partials/ingest_activity.html", activity_context(engine)
+    )
 
 
 @router.post("/ingest/dry-run", response_class=HTMLResponse)
@@ -108,6 +179,7 @@ def start(
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
+    """Queues the job and shows it in the right panel; otherwise shows why not."""
     folder = get_ingest_folder(gateway, settings.ingest_dir)
     selected = find_bag_file(folder, file)
     if selected is None:
@@ -134,4 +206,11 @@ def start(
         return templates.TemplateResponse(
             request, "partials/ingest_dry_run.html", context
         )
-    return HTMLResponse("", headers={"HX-Redirect": f"/ingest/jobs/{job.id}"})
+    context = {"detail_job": job, "selected": selected} | job_context(job)
+    response = templates.TemplateResponse(
+        request, "partials/ingest_detail.html", context
+    )
+    response.headers["HX-Retarget"] = "#ingest-detail"
+    response.headers["HX-Reswap"] = "innerHTML"
+    response.headers["HX-Push-Url"] = f"/ingest?job={job.id}"
+    return response

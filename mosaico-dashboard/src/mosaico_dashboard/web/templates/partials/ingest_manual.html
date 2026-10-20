@@ -1,0 +1,10 @@
+<section id="ingest-tab">
+  {% include "partials/ingest_tabs.html" %}
+  <div class="workspace">
+    {% with selectable = true %}{% include "partials/ingest_files_panel.html" %}{% endwith %}
+    <div class="splitter" role="separator" aria-orientation="vertical" aria-label="Resize" onmousedown="startResize(event)"></div>
+    <div class="panel detail-panel" id="ingest-detail">
+      {% include "partials/ingest_detail.html" %}
+    </div>
+  </div>
+</section>

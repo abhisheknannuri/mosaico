@@ -1,0 +1,28 @@
+{% if not activity_available %}
+<div id="ingest-activity" class="activity-bar" hx-get="/ingest/activity" hx-trigger="every 15s" hx-swap="outerHTML">
+  <span class="activity-line"><span class="status-dot down"></span>The dashboard database is not reachable: ingestions can't be started or followed.</span>
+</div>
+{% elif active_job %}
+{% set job = active_job %}
+<div id="ingest-activity" class="activity-bar active" hx-get="/ingest/activity" hx-trigger="every 2s" hx-swap="outerHTML">
+  <span class="activity-line">
+    <span class="status-dot running"></span>
+    {% if job.status == "queued" %}
+      <span class="label">Queued</span> <strong>{{ job.params.sequence_name }}</strong>
+      <span class="muted">waiting for the worker</span>
+    {% else %}
+      <span class="label">Ingesting</span> <strong>{{ job.params.sequence_name }}</strong>
+      <span class="muted">{{ job.params.file_path.rsplit("/", 1)[-1] }}</span>
+      <span class="activity-percent">{{ (job.share_done * 100) | round | int }}%</span>
+    {% endif %}
+    {% if queued %}<span class="muted">· {{ queued }} more queued</span>{% endif %}
+  </span>
+  <span class="activity-actions">
+    <a class="button-link" href="/ingest?job={{ job.id }}" hx-get="/ingest/detail?job={{ job.id }}" hx-target="#ingest-detail" hx-push-url="/ingest?job={{ job.id }}">View</a>
+  </span>
+</div>
+{% else %}
+<div id="ingest-activity" class="activity-bar" hx-get="/ingest/activity" hx-trigger="every 15s" hx-swap="outerHTML">
+  <span class="activity-line"><span class="status-dot idle"></span><span class="label">Idle</span> <span class="muted">No ingestion running{% if queued %} · {{ queued }} queued{% endif %}</span></span>
+</div>
+{% endif %}

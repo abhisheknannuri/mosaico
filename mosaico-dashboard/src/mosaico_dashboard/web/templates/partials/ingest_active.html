@@ -1,6 +1,8 @@
+<div class="active-ingestion" hx-get="/ingest/active" hx-trigger="every {{ '3s' if job else '30s' }}" hx-swap="outerHTML">
 {% if job %}
-<a href="/ingest/jobs/{{ job.id }}" title="{{ job.params.file_path }}">
+<a href="/ingest?job={{ job.id }}" title="{{ job.params.file_path }}">
   {% include "icons/file-up.svg" %}
   {% if job.status == "queued" %}Queued: {{ job.params.sequence_name }}{% else %}Ingesting {{ job.params.sequence_name }} · {{ (job.share_done * 100) | round | int }}%{% endif %}
 </a>
 {% endif %}
+</div>
