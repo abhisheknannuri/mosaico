@@ -45,14 +45,17 @@
     {% call ui.card(selected.relative_path if selected else "Options") %}
       {% if selected %}
         {{ ui.key_values({"Path": selected.path, "Size": selected.size_bytes | bytes, "Modified": selected.modified_at | datetime}) }}
-        <form id="ingest-options">
+        <form id="ingest-options" hx-post="/ingest/dry-run" hx-target="#dry-run" hx-swap="innerHTML">
           <input type="hidden" name="file" value="{{ selected.relative_path }}">
           {{ ui.text_field("Recording name", "sequence_name", selected.recording_name, "From the file path, the same way the SDK watchdog names recordings.") }}
           {% if selected.in_mosaico %}
             <p class="muted">A recording with this name is already in Mosaico. Use another name to ingest the file again.</p>
           {% endif %}
           {{ ui.key_value_rows("Metadata (optional)", "metadata", "metadata-rows") }}
+          <button type="submit">Dry run</button>
+          <span class="field-hint">Checks which topics the SDK can ingest; nothing is written to Mosaico.</span>
         </form>
+        <div id="dry-run" aria-live="polite"></div>
       {% else %}
         <p class="muted">Select a file to set its recording name and metadata.</p>
       {% endif %}

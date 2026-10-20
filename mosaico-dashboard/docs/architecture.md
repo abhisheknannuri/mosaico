@@ -158,8 +158,13 @@ sequenceDiagram
     K->>DB: still running? → failed with exit code
 ```
 
-The Ingest page (`/ingest`) lists the bags in `DASHBOARD_INGEST_DIR` and the options for the
-selected one (D-20); the dry run, starting the job and live progress follow (D-21, D-22).
+The Ingest page (`/ingest`) lists the bags in `DASHBOARD_INGEST_DIR`, shows the options for the
+selected one (D-20) and runs a dry run in the web process (`POST /ingest/dry-run`, D-21);
+starting the job and live progress follow (D-22).
+
+Creating an SDK injector replaces the SDK logger's handlers with its own (Rich, stderr). The
+web process hands them back right after (`logging_config.route_sdk_logs_to_root`); the job
+process keeps the SDK's set-up, its output goes to the worker's terminal.
 
 ## 5. Folder structure
 
@@ -282,7 +287,7 @@ Contracts (all must be `KEPT`):
 `gateway/base.py` defines `MosaicoGateway`, a Protocol of what the dashboard needs from
 mosaicod: `check_connection`, `list_recordings`, `get_recording`, `list_streams`,
 `list_bag_files` (local ROS bags, listed and named by the SDK watchdog's `LocalFileSource` and
-`sequence_name_from_fileref`, `gateway/files.py`), `ingest`, `close`. Implementations inherit it explicitly: `SdkGateway` and `FakeGateway` (in memory,
+`sequence_name_from_fileref`, `gateway/files.py`), `dry_run`, `ingest`, `close`. Implementations inherit it explicitly: `SdkGateway` and `FakeGateway` (in memory,
 tests).
 
 - **Synchronous**: the SDK blocks; services are plain functions, page routes are `def`, and
@@ -299,7 +304,7 @@ tests).
 | --- | --- | --- | --- | --- |
 | Ops | `web/health.py` | `/healthz` (process alive), `/readyz` (mosaicod and database, each reported; 503 if either is down) | Yes, tag `ops` | JSON |
 | JSON API | `web/api/` | `/api/v1/...` | Yes, tag per feature | JSON, Pydantic model as return type |
-| HTML pages | `web/pages/` | `/`, `/recordings`, `/ingest`, `/export`, `/status` | No | Full page, or fragment for htmx |
+| HTML pages | `web/pages/` | `/`, `/recordings`, `/ingest` (+ `POST /ingest/dry-run`, fragment), `/export`, `/status` | No | Full page, or fragment for htmx |
 
 - Every documented route has a `summary` and a tag; its return type annotation is its response
   model. `operationId` is the Python function name.

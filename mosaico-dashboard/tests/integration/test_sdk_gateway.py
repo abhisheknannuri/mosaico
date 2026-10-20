@@ -70,3 +70,24 @@ def test_shared_client_is_safe_across_threads(gateway, recording_name):
 
 def test_check_connection_returns_version(gateway):
     assert gateway.check_connection()
+
+
+def test_dry_run_of_a_demo_bag_and_logging_is_handed_back(gateway):
+    import logging
+    from pathlib import Path
+
+    from mosaico_dashboard.domain.models import IngestRequest
+
+    bag = (
+        Path(__file__).parents[2]
+        / "demo-data/demo_warehouse_run_01/demo_warehouse_run_01.mcap"
+    )
+    if not bag.exists():
+        pytest.skip("demo bags not generated (scripts/make_demo_bags.py)")
+
+    topics = gateway.dry_run(IngestRequest(file_path=str(bag), sequence_name="x"))
+
+    assert {t.name for t in topics if t.accepted} >= {"/imu/data", "/gps/fix"}
+    assert all(t.msg_count for t in topics if t.accepted)
+    sdk_logger = logging.getLogger("mosaicolabs")
+    assert sdk_logger.handlers == [] and sdk_logger.propagate is True

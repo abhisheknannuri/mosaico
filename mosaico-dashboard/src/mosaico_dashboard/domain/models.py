@@ -164,3 +164,63 @@ class IngestFolder(DomainModel):
     path: str | None
     status: IngestFolderStatus
     files: list[BagFile]
+
+
+class DryRunTopic(DomainModel):
+    """A topic of a bag, as a real ingestion would handle it."""
+
+    name: str
+    accepted: bool
+    adapter: str | None = None
+    msg_count: int | None = None
+    reason: str | None = None
+
+
+DryRunVerdict = Literal["ok", "warn", "blocked"]
+
+
+class DryRun(DomainModel):
+    """What ingesting a bag would do: ok (every topic), warn (some topics skipped) or
+    blocked (an error, or no topic can be ingested)."""
+
+    request: IngestRequest | None
+    topics: list[DryRunTopic] = []
+    error: str | None = None
+
+    @property
+    def accepted(self) -> list[DryRunTopic]:
+        return [t for t in self.topics if t.accepted]
+
+    @property
+    def rejected(self) -> list[DryRunTopic]:
+        return [t for t in self.topics if not t.accepted]
+
+    @property
+    def message_count(self) -> int:
+        return sum(t.msg_count or 0 for t in self.accepted)
+
+    @property
+    def verdict(self) -> DryRunVerdict:
+        if self.error or not self.accepted:
+            return "blocked"
+        return "warn" if self.rejected else "ok"
+
+
+_NAME_FORBIDDEN = set("!\"'*£$%&. /:")
+
+
+def recording_name_problem(name: str) -> str | None:
+    """Why mosaicod would refuse `name` as a recording (sequence) name, or None."""
+    if not name:
+        return "Enter a recording name."
+    bad = sorted(
+        {
+            c
+            for c in name
+            if c in _NAME_FORBIDDEN or not c.isascii() or not c.isprintable()
+        }
+    )
+    if bad:
+        shown = " ".join("space" if c == " " else c for c in bad)
+        return f"The recording name can't contain: {shown}"
+    return None

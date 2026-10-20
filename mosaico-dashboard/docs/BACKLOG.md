@@ -407,10 +407,23 @@ hooks were already done in D-01.)
   e.g. `demo_field_test_01`) are not recognised as "in Mosaico", since the rule gives
   `demo_field_test_01-demo_field_test_01__mcap` for the same file.
 
-### D-21 · Dry run step · `todo`
-- Runs the injector with `dry_run=True` on the chosen config (D-16 result) and shows it:
-  no accepted topic → stop with the reasons; some rejected → warn (the recording would miss
-  those topics), user confirms; all accepted → continue.
+### D-21 · Dry run step · `done`
+- [x] "Dry run" on the Ingest page posts the form (`POST /ingest/dry-run`, htmx) and shows the
+  result under it: ok ("Ready to ingest: all N topics, M messages"), warn ("K of N topics would
+  be skipped", reasons per topic), blocked (no accepted topic, or the SDK's error).
+- [x] Checked before the SDK runs: recording name with mosaicod's rule
+  (`SequenceLocator::from_str`: ASCII, no control characters, no `! " ' * £ $ % & .`, space,
+  `/`, `:`), duplicate metadata keys; only files listed in the folder.
+- [x] `gateway.dry_run(request)` → D-16 `injector.dry_run()`, in the web process; afterwards
+  the SDK logger is handed back to the dashboard's logging (`route_sdk_logs_to_root`), since
+  creating an injector replaces it with the SDK's own Rich handler.
+- [x] Components `notice` (ok / warn / error), `chip warn`; filter `number`. Dependency
+  `python-multipart` (form posts).
+- [x] Tests: name rule, verdicts, metadata rows, service, route (all outcomes), integration
+  dry run of a demo bag + logging hand-back; 162 tests. Live: demo bag → 5 topics, 15,960
+  messages; invalid name refused.
+- Not here: whether the name already exists (the dry run doesn't contact mosaicod; the run
+  reports it, D-22).
 
 ### D-22 · Ingestion run, live progress, cancel · `todo`
 - Start → job in the worker → progress per topic and overall through SSE (from D-17), Cancel
@@ -418,6 +431,8 @@ hooks were already done in D-01.)
   unreachable; API key without `write`), the SDK message otherwise.
 - User can leave the page: indicator in the top bar ("Ingesting … 42 %") links back; refresh
   or restart reconnects to the job.
+- Start posts the same form; the server checks it and dry-runs again (the shown result may be
+  stale if the form changed), and with skipped topics the user confirms first.
 - Default `on_error=Delete` (agreed 2026-10-19): a failed or cancelled ingestion leaves no
   recording, so the file isn't marked ingested and can be retried under the same name.
 

@@ -46,10 +46,11 @@ Inside the partial, in this order when present: `.stats` row → `.cards` grid �
 | `page_header(title, subtitle, back_href, back_label)` | Top of every page | `ui.page_header("Recordings", "Newest first.")` |
 | `stat(label, value, hint, title)` | A single number; `hint` says what it means, `title` is the hover text (exact value); group in `<div class="stats">` | `ui.stat("Stored", t \| bytes, "compressed, in mosaicod", t \| bytes_exact)` |
 | `card(title, id, link_href, link_label)` | A panel around any content; group in `<div class="cards">` for a 2-column grid | `{% call ui.card("Latest") %}…{% endcall %}` |
-| `chips(items)` | Short labels (ontology tags); a single chip with class `chip ok` marks a positive state | `ui.chips(summary.ontology_tags)`, "in Mosaico" on the Ingest page |
+| `chips(items)` | Short labels (ontology tags); a single chip with class `chip ok` / `chip warn` marks a state | `ui.chips(summary.ontology_tags)`, "in Mosaico" on the Ingest page |
 | `share_bar(share, title)` | A bar filled to `share` (0–1), e.g. in a table cell | storage by ontology type |
 | `bar(label, value, share, title)` | One row of a `<ul class="bar-list">`: label, bar, value, percentage; share 0–1 | — |
 | `key_values(mapping)` | Properties of one item | selected file on the Ingest page |
+| `notice(kind, title)` | Boxed message, kind `ok` / `warn` / `error`, body via `{% call %}` | dry-run result |
 | `text_field(label, name, value, hint)` | Labelled single-line input with optional hint | recording name |
 | `key_value_rows(label, name, id, rows)` | Pairs of inputs `{name}_key` / `{name}_value`; "Add" copies the last row (`addRow` in `app.js`) | metadata |
 | `empty_state(title)` | Nothing to show yet; body via `{% call %}` | no recordings |
@@ -63,7 +64,7 @@ Links in a `name` cell look like the name (underlined on hover); a selected row 
 ## Formatting
 
 Use the Jinja filters, never format in templates by hand: `| bytes` (3 significant digits:
-1.98 GB, 366 MB), `| bytes_exact` (hover text: 1,979,880,035 bytes), `| percent` (99.7%, <0.1%),
+1.98 GB, 366 MB), `| number` (12,000), `| bytes_exact` (hover text: 1,979,880,035 bytes), `| percent` (99.7%, <0.1%),
 `| duration`, `| datetime`. Every size shown has its exact value as `title`.
 
 ## CSS rules (`static/css/app.css`)

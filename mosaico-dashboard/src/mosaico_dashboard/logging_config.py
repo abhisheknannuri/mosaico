@@ -31,3 +31,11 @@ def setup_logging(level: str = "INFO", log_format: LogFormat = "plain") -> None:
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
+
+
+def route_sdk_logs_to_root() -> None:
+    """Undo the SDK's own logging set-up (done when an injector is created), so its logs go
+    to the handler configured by `setup_logging` again."""
+    sdk_logger = logging.getLogger("mosaicolabs")
+    sdk_logger.handlers.clear()
+    sdk_logger.propagate = True

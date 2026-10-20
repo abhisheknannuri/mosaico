@@ -1,0 +1,45 @@
+{% import "components.html" as ui %}
+{% if error and not (result and result.request) %}
+  {% call ui.notice("error", "Can't run the dry run") %}<p>{{ error }}</p>{% endcall %}
+{% elif result.error %}
+  {% call ui.notice("error", "This file can't be ingested") %}<p>{{ result.error }}</p>{% endcall %}
+{% else %}
+  {% if result.verdict == "ok" %}
+    {% call ui.notice("ok", "Ready to ingest") %}
+      <p>All {{ result.topics | length }} topics, {{ result.message_count | number }} messages, into the recording <code>{{ result.request.sequence_name }}</code>.</p>
+    {% endcall %}
+  {% elif result.verdict == "warn" %}
+    {% call ui.notice("warn", result.rejected | length ~ " of " ~ result.topics | length ~ " topics would be skipped") %}
+      <p>The recording <code>{{ result.request.sequence_name }}</code> would contain the other {{ result.accepted | length }} topics ({{ result.message_count | number }} messages). Skipped topics are listed below with the reason.</p>
+    {% endcall %}
+  {% else %}
+    {% call ui.notice("error", "No topic can be ingested") %}
+      <p>The SDK has no adapter for any topic of this file. See the reasons below.</p>
+    {% endcall %}
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th>Topic</th>
+        <th>Adapter / reason</th>
+        <th class="num">Messages</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for topic in result.accepted %}
+      <tr>
+        <td class="name">{{ topic.name }}</td>
+        <td>{{ topic.adapter or "—" }}</td>
+        <td class="num">{{ topic.msg_count | number }}</td>
+      </tr>
+    {% endfor %}
+    {% for topic in result.rejected %}
+      <tr>
+        <td class="name">{{ topic.name }}</td>
+        <td><span class="chip warn">skipped</span> {{ topic.reason }}</td>
+        <td class="num">—</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}

@@ -81,6 +81,14 @@
 </fieldset>
 {% endmacro %}
 
+{% macro notice(kind, title) %}
+{# A boxed message: kind is ok, warn or error; body via {% call %}. #}
+<div class="notice notice-{{ kind }}" role="{{ 'alert' if kind == 'error' else 'status' }}">
+  <strong>{{ title }}</strong>
+  {{ caller() }}
+</div>
+{% endmacro %}
+
 {% macro empty_state(title) %}
 <div class="empty-state">
   <h2>{{ title }}</h2>

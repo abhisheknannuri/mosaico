@@ -6,6 +6,7 @@ from typing import Protocol
 
 from mosaico_dashboard.domain.models import (
     BagFile,
+    DryRunTopic,
     IngestOutcome,
     IngestRequest,
     Progress,
@@ -49,6 +50,13 @@ class MosaicoGateway(Protocol):
         """ROS bags in a local folder, named as the SDK watchdog would name them.
 
         Raises ValueError if `folder` doesn't exist or isn't a folder.
+        """
+        ...
+
+    def dry_run(self, request: IngestRequest) -> list[DryRunTopic]:
+        """What ingesting the bag would do, per topic, without contacting mosaicod.
+
+        Raises if the bag can't be opened (unreadable, or no topic matches a filter).
         """
         ...
 

@@ -13,11 +13,13 @@ from mosaico_dashboard.db.jobs import (
 )
 from mosaico_dashboard.domain.models import (
     BagFile,
+    DryRun,
     IngestFolder,
     IngestRequest,
     Job,
     JobStatus,
     Progress,
+    recording_name_problem,
 )
 from mosaico_dashboard.gateway.base import GatewayUnavailable, MosaicoGateway
 
@@ -44,6 +46,48 @@ def get_ingest_folder(gateway: MosaicoGateway, folder: Path | None) -> IngestFol
             for f in files
         ],
     )
+
+
+def metadata_from_rows(keys: list[str], values: list[str]) -> dict[str, str]:
+    """Key/value rows of the form; rows without a key are ignored.
+
+    Raises ValueError when a key is used twice.
+    """
+    metadata: dict[str, str] = {}
+    for key, value in zip(keys, values):
+        key = key.strip()
+        if not key:
+            continue
+        if key in metadata:
+            raise ValueError(f"The metadata key '{key}' is used twice.")
+        metadata[key] = value.strip()
+    return metadata
+
+
+def dry_run_ingestion(
+    gateway: MosaicoGateway,
+    file: BagFile,
+    sequence_name: str,
+    metadata_keys: list[str],
+    metadata_values: list[str],
+) -> DryRun:
+    """Checks the form and asks the SDK what ingesting the bag would do."""
+    sequence_name = sequence_name.strip()
+    problem = recording_name_problem(sequence_name)
+    if problem:
+        return DryRun(request=None, error=problem)
+    try:
+        metadata = metadata_from_rows(metadata_keys, metadata_values)
+    except ValueError as error:
+        return DryRun(request=None, error=str(error))
+    request = IngestRequest(
+        file_path=file.path, sequence_name=sequence_name, metadata=metadata
+    )
+    try:
+        topics = gateway.dry_run(request)
+    except Exception as error:
+        return DryRun(request=request, error=str(error) or type(error).__name__)
+    return DryRun(request=request, topics=topics)
 
 
 def find_bag_file(folder: IngestFolder, relative_path: str | None) -> BagFile | None:

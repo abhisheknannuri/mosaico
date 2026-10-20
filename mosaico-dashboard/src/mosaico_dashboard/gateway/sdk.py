@@ -10,10 +10,12 @@ import pyarrow.flight as flight
 from mosaicolabs import MosaicoClient, SequenceHandler, TopicHandler
 from mosaicolabs.bridges.base_injector import InjectionStatus
 from mosaicolabs.bridges.ros import RosbagInjector, ROSInjectionConfig
+from mosaicolabs.bridges.topic_status import TopicStatus
 from mosaicolabs.bridges.ui import ProgressSnapshot
 
 from mosaico_dashboard.domain.models import (
     BagFile,
+    DryRunTopic,
     IngestOutcome,
     IngestRequest,
     Progress,
@@ -29,6 +31,7 @@ from mosaico_dashboard.gateway.base import (
     RecordingNotFound,
 )
 from mosaico_dashboard.gateway.files import list_bag_files
+from mosaico_dashboard.logging_config import route_sdk_logs_to_root
 
 
 class SdkGateway(MosaicoGateway):
@@ -85,10 +88,38 @@ class SdkGateway(MosaicoGateway):
     def list_bag_files(self, folder: Path) -> list[BagFile]:
         return list_bag_files(folder)
 
+    def dry_run(self, request: IngestRequest) -> list[DryRunTopic]:
+        injector = RosbagInjector(self._injection_config(request))
+        route_sdk_logs_to_root()
+        report = injector.dry_run()
+        return [
+            DryRunTopic(
+                name=topic.name,
+                accepted=topic.status == TopicStatus.ACCEPTED,
+                adapter=topic.adapter,
+                msg_count=topic.msg_count,
+                reason=None
+                if topic.status == TopicStatus.ACCEPTED
+                else topic.status.value,
+            )
+            for topic in report.topics
+        ]
+
     def ingest(
         self, request: IngestRequest, on_progress: Callable[[Progress], None]
     ) -> IngestOutcome:
-        config = ROSInjectionConfig(
+        config = self._injection_config(
+            request, lambda snapshot: on_progress(_to_progress(snapshot))
+        )
+        status = RosbagInjector(config).run()
+        return "cancelled" if status == InjectionStatus.CANCELLED else "completed"
+
+    def _injection_config(
+        self,
+        request: IngestRequest,
+        progress_callback: Callable[[ProgressSnapshot], None] | None = None,
+    ) -> ROSInjectionConfig:
+        return ROSInjectionConfig(
             file_path=Path(request.file_path),
             sequence_name=request.sequence_name,
             metadata=request.metadata,
@@ -97,10 +128,8 @@ class SdkGateway(MosaicoGateway):
             mosaico_api_key=self._api_key,
             enable_tls=self._tls,
             tls_cert_path=str(self._tls_cert_path) if self._tls_cert_path else None,
-            progress_callback=lambda snapshot: on_progress(_to_progress(snapshot)),
+            progress_callback=progress_callback,
         )
-        status = RosbagInjector(config).run()
-        return "cancelled" if status == InjectionStatus.CANCELLED else "completed"
 
     def close(self) -> None:
         with self._lock:

@@ -16,6 +16,7 @@
   --link: hsl(304, 54%, 78%);
   --ok: hsl(140, 50%, 50%);
   --down: hsl(12, 88%, 64%);
+  --warn: hsl(40, 90%, 60%);
   --orange-low: hsl(12, 88%, 39%);
   --purple-low: hsl(304, 54%, 32%);
   --blue-low: hsl(195, 76%, 28%);
@@ -388,6 +389,11 @@ tbody tr[aria-selected="true"] {
   border-color: var(--ok);
 }
 
+.chip.warn {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
 /* text_field, key_value_rows */
 .field {
   display: block;
@@ -502,6 +508,40 @@ table.ontology-storage .bar-track {
   margin: 0;
   color: var(--heading);
   overflow-wrap: anywhere;
+}
+
+/* notice */
+.notice {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-dim);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 0.9rem;
+}
+
+.notice strong {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--heading);
+  font-weight: 500;
+}
+
+.notice p:last-child {
+  margin-bottom: 0;
+}
+
+.notice-ok {
+  border-left-color: var(--ok);
+}
+
+.notice-warn {
+  border-left-color: var(--warn);
+}
+
+.notice-error {
+  border-left-color: var(--down);
 }
 
 /* empty_state */

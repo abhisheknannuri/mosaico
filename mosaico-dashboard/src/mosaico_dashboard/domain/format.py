@@ -53,3 +53,8 @@ def format_datetime(value: datetime | None) -> str:
     if value is None:
         return EMPTY
     return f"{value.day} {value:%b %Y, %H:%M} UTC"
+
+
+def format_number(value: int | None) -> str:
+    """'12,000'."""
+    return EMPTY if value is None else f"{value:,}"

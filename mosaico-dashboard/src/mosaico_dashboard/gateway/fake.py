@@ -6,6 +6,7 @@ from pathlib import Path
 
 from mosaico_dashboard.domain.models import (
     BagFile,
+    DryRunTopic,
     IngestOutcome,
     IngestRequest,
     Progress,
@@ -29,8 +30,10 @@ class FakeGateway(MosaicoGateway):
         recordings: list[Recording] | None = None,
         streams: list[SensorStream] | None = None,
         available: bool = True,
+        dry_run_topics: list[DryRunTopic] | None = None,
     ):
         self._available = available
+        self._dry_run_topics = dry_run_topics
         self._streams = sample_streams() if streams is None else streams
         self._recordings = (
             sample_recordings(self._streams) if recordings is None else recordings
@@ -57,6 +60,12 @@ class FakeGateway(MosaicoGateway):
 
     def list_bag_files(self, folder: Path) -> list[BagFile]:
         return list_bag_files(folder)
+
+    def dry_run(self, request: IngestRequest) -> list[DryRunTopic]:
+        """Two accepted topics and one without an adapter, unless set in the constructor."""
+        if self._dry_run_topics is None:
+            return sample_dry_run()
+        return list(self._dry_run_topics)
 
     def ingest(
         self, request: IngestRequest, on_progress: Callable[[Progress], None]
@@ -140,3 +149,15 @@ def sample_recordings(streams: list[SensorStream]) -> list[Recording]:
             )
         )
     return recordings
+
+
+def sample_dry_run() -> list[DryRunTopic]:
+    return [
+        DryRunTopic(
+            name="/imu/data", accepted=True, adapter="IMUAdapter", msg_count=12000
+        ),
+        DryRunTopic(
+            name="/gps/fix", accepted=True, adapter="GPSAdapter", msg_count=600
+        ),
+        DryRunTopic(name="/robot/custom", accepted=False, reason="Unresolved adapter"),
+    ]

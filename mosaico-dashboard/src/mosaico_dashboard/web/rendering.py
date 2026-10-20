@@ -12,6 +12,7 @@ from mosaico_dashboard.domain.format import (
     format_bytes_exact,
     format_datetime,
     format_duration,
+    format_number,
     format_percent,
 )
 
@@ -21,6 +22,7 @@ templates.env.filters["bytes_exact"] = format_bytes_exact
 templates.env.filters["percent"] = format_percent
 templates.env.filters["duration"] = format_duration
 templates.env.filters["datetime"] = format_datetime
+templates.env.filters["number"] = format_number
 
 
 def wants_fragment(request: Request) -> bool:
