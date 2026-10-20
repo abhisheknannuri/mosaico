@@ -1,12 +1,19 @@
 """Ingest page: tabs Manual ingest, Watchdog and History; the right panel and the activity bar."""
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from mosaico_dashboard.domain.models import IngestOptions
+from mosaico_dashboard.domain.models import IngestFolder, IngestOptions
 from mosaico_dashboard.gateway.base import MosaicoGateway
+from mosaico_dashboard.services.folders import (
+    get_ingest_dir,
+    list_folder,
+    save_ingest_dir,
+)
 from mosaico_dashboard.services.ingestion import (
     dry_run_ingestion,
     find_bag_file,
@@ -49,6 +56,14 @@ def form_options(
         keep_partial=keep_partial,
         update_if_exists=update_if_exists,
         topics=topics if topics_chosen else None,
+    )
+
+
+def current_folder(
+    gateway: MosaicoGateway, engine: Engine, settings: Settings
+) -> IngestFolder:
+    return get_ingest_folder(
+        gateway, get_ingest_dir(engine, settings.ingest_dir), engine
     )
 
 
@@ -103,7 +118,7 @@ def manual(
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
-    folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
+    folder = current_folder(gateway, engine, settings)
     context = {"folder": folder} | detail_context(
         gateway, engine, settings, folder, file, job
     )
@@ -117,7 +132,7 @@ def watchdog(
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
-    folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
+    folder = current_folder(gateway, engine, settings)
     return page(request, "watchdog", {"folder": folder, "selected": None}, engine)
 
 
@@ -135,9 +150,72 @@ def detail(
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
-    folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
+    folder = current_folder(gateway, engine, settings)
     context = detail_context(gateway, engine, settings, folder, file, job)
     return templates.TemplateResponse(request, "partials/ingest_detail.html", context)
+
+
+TAB_URLS = {"manual": "/ingest", "watchdog": "/ingest/watchdog"}
+
+
+def folder_dialog(
+    request: Request,
+    gateway: MosaicoGateway,
+    engine: Engine,
+    settings: Settings,
+    path: str,
+    tab: str,
+    error: str | None = None,
+) -> HTMLResponse:
+    current = get_ingest_dir(engine, settings.ingest_dir)
+    places = {"Home": Path.home(), "Ingest folder": current}
+    if settings.ingest_dir != current:
+        places["Default (.env)"] = settings.ingest_dir
+    places["Root"] = Path("/")
+    context = {
+        "listing": list_folder(path, gateway.bag_extensions()),
+        "tab": tab if tab in TAB_URLS else "manual",
+        "places": {name: str(p) for name, p in places.items() if p},
+        "error": error,
+    }
+    return templates.TemplateResponse(
+        request, "partials/ingest_folder_dialog.html", context
+    )
+
+
+@router.get("/ingest/folders", response_class=HTMLResponse)
+def folders(
+    request: Request,
+    path: str | None = None,
+    tab: str = "manual",
+    gateway: MosaicoGateway = Depends(get_gateway),
+    engine: Engine = Depends(get_engine),
+    settings: Settings = Depends(get_app_settings),
+) -> HTMLResponse:
+    """The folder dialog, listing `path` (default: the ingest folder, else home)."""
+    if path is None:
+        current = get_ingest_dir(engine, settings.ingest_dir)
+        path = str(current if current and current.is_dir() else Path.home())
+    return folder_dialog(request, gateway, engine, settings, path, tab)
+
+
+@router.post("/ingest/folder", response_class=HTMLResponse)
+def choose_folder(
+    request: Request,
+    path: str = Form(),
+    tab: str = Form("manual"),
+    gateway: MosaicoGateway = Depends(get_gateway),
+    engine: Engine = Depends(get_engine),
+    settings: Settings = Depends(get_app_settings),
+) -> HTMLResponse:
+    try:
+        save_ingest_dir(engine, path, settings.ingest_dir)
+    except ValueError as error:
+        return folder_dialog(request, gateway, engine, settings, path, tab, str(error))
+    except SQLAlchemyError:
+        error = "The dashboard database is not reachable: the folder can't be saved."
+        return folder_dialog(request, gateway, engine, settings, path, tab, error)
+    return HTMLResponse(headers={"HX-Redirect": TAB_URLS.get(tab, "/ingest")})
 
 
 @router.get("/ingest/activity", response_class=HTMLResponse)
@@ -176,9 +254,10 @@ def dry_run(
     topic: list[str] = Form(default=[]),
     topics_chosen: bool = Form(False),
     gateway: MosaicoGateway = Depends(get_gateway),
+    engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
-    folder = get_ingest_folder(gateway, settings.ingest_dir)
+    folder = current_folder(gateway, engine, settings)
     selected = find_bag_file(folder, file)
     if selected is None:
         context = {"error": f"'{file}' is not in the ingest folder anymore."}
@@ -215,7 +294,7 @@ def start(
 ) -> HTMLResponse:
     """Queues the job (starting the worker if needed) and shows it in the right panel;
     otherwise shows why not."""
-    folder = get_ingest_folder(gateway, settings.ingest_dir)
+    folder = current_folder(gateway, engine, settings)
     selected = find_bag_file(folder, file)
     if selected is None:
         context = {"error": f"'{file}' is not in the ingest folder anymore."}

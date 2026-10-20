@@ -23,11 +23,11 @@ def client_for(folder) -> TestClient:
     )
 
 
-def test_without_a_folder_the_page_says_how_to_set_it(client):
+def test_without_a_folder_the_page_asks_to_choose_one(client):
     text = client.get("/ingest").text
 
-    assert "No folder set" in text
-    assert "DASHBOARD_INGEST_DIR" in text
+    assert "No folder chosen" in text
+    assert 'hx-get="/ingest/folders?tab=manual"' in text
 
 
 def test_missing_folder(tmp_path):
@@ -136,3 +136,45 @@ def test_dry_run_of_a_file_not_in_the_folder(bags):
     text = client_for(bags).post(DRY_RUN, data=FORM | {"file": "../x.mcap"}).text
 
     assert "not in the ingest folder" in text
+
+
+def test_folder_dialog_lists_folders_and_files(bags):
+    (bags / "notes.txt").write_bytes(b"x")
+
+    text = client_for(bags).get("/ingest/folders?tab=watchdog").text
+
+    assert f'id="folder-selection" name="path" value="{bags}"' in text
+    assert f'data-path="{bags}/run_01"' in text
+    assert "notes.txt" in text
+    assert 'id="folder-tab" name="tab" value="watchdog"' in text
+
+
+def test_choosing_a_folder_saves_it_and_reloads_the_tab(bags):
+    client = client_for(bags)
+
+    response = client.post(
+        "/ingest/folder", data={"path": str(bags / "run_01"), "tab": "watchdog"}
+    )
+
+    assert response.headers["HX-Redirect"] == "/ingest/watchdog"
+    text = client.get("/ingest").text
+    assert f"{bags}/run_01" in text
+    assert 'data-name="drive.mcap"' in text
+
+
+def test_choosing_a_missing_folder_shows_why(bags):
+    response = client_for(bags).post("/ingest/folder", data={"path": "/nope/bags"})
+
+    assert "HX-Redirect" not in response.headers
+    assert "doesn&#39;t exist or isn&#39;t a folder" in response.text
+
+
+def test_default_folder_is_a_place_once_another_is_chosen(bags):
+    client = client_for(bags)
+    assert "Default (.env)" not in client.get("/ingest/folders").text
+
+    client.post("/ingest/folder", data={"path": str(bags / "run_01")})
+    assert "Default (.env)" in client.get("/ingest/folders").text
+
+    client.post("/ingest/folder", data={"path": str(bags)})
+    assert 'data-name="run_01/drive.mcap"' in client.get("/ingest").text

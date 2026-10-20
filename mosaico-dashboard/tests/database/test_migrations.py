@@ -13,9 +13,9 @@ def test_migrations_reach_the_latest_revision(postgres_engine):
     with postgres_engine.connect() as c:
         revision = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
 
-    assert revision == "b4a3c9872c17"
+    assert revision == "31d0319b8897"
     tables = set(inspect(postgres_engine).get_table_names())
-    assert {"job", "worker", "alembic_version"} <= tables
+    assert {"job", "worker", "setting", "alembic_version"} <= tables
 
 
 def test_migrating_again_changes_nothing(postgres_url):

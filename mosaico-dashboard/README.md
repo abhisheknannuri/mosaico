@@ -66,8 +66,10 @@ a second terminal:
 poetry run mosaico-dashboard-worker
 ```
 
-Only one worker runs at a time; a second one exits. The Ingest page lists the ROS bags in `DASHBOARD_INGEST_DIR` (an absolute path
-on this machine, set in `.env`); `DASHBOARD_INGEST_ROS_DISTRO` and `DASHBOARD_INGEST_KEEP_PARTIAL`
+Only one worker runs at a time; a second one exits. The Ingest page lists the ROS bags in the
+ingest folder: `DASHBOARD_INGEST_DIR` (an absolute path on this machine, set in `.env`) until
+another one is chosen on the page (click the folder bar; saved in the dashboard database;
+choosing the `.env` folder again goes back to it); `DASHBOARD_INGEST_ROS_DISTRO` and `DASHBOARD_INGEST_KEEP_PARTIAL`
 set the defaults of its advanced options.
 
 ## Demo data

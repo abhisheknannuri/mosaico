@@ -32,7 +32,7 @@ from mosaico_dashboard.gateway.base import (
     MosaicoGateway,
     RecordingNotFound,
 )
-from mosaico_dashboard.gateway.files import list_bag_files
+from mosaico_dashboard.gateway.files import bag_extensions, list_bag_files
 from mosaico_dashboard.logging_config import route_sdk_logs_to_root
 
 
@@ -89,6 +89,9 @@ class SdkGateway(MosaicoGateway):
 
     def list_bag_files(self, folder: Path) -> list[BagFile]:
         return list_bag_files(folder)
+
+    def bag_extensions(self) -> list[str]:
+        return bag_extensions()
 
     def ros_distros(self) -> list[str]:
         return [store.value for store in Stores if store != Stores.EMPTY]

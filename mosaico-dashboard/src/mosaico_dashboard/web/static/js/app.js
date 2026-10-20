@@ -92,3 +92,26 @@ document.addEventListener("DOMContentLoaded", () => {
   showSelectedFile(document);
 });
 document.addEventListener("htmx:afterSwap", (event) => applyFilesWidth(event.detail.target.parentElement || document));
+
+// Folder dialog: open it when its content arrives.
+document.addEventListener("htmx:afterSwap", (event) => {
+  const dialog = event.detail.target;
+  if (dialog.id === "folder-dialog" && !dialog.open) dialog.showModal();
+});
+
+// Folder dialog: a click selects a row; only a folder can be chosen.
+function pickEntry(row) {
+  const dialog = row.closest(".folder-dialog");
+  dialog.querySelector("[aria-selected]")?.removeAttribute("aria-selected");
+  row.setAttribute("aria-selected", "true");
+  const isFolder = row.dataset.folder === "true";
+  dialog.querySelector("#folder-select").disabled = !isFolder;
+  const status = dialog.querySelector("#folder-status");
+  if (isFolder) {
+    dialog.querySelector("#folder-selection").value = row.dataset.path;
+    status.innerHTML = "Selected: <code></code>";
+    status.querySelector("code").textContent = row.dataset.path;
+  } else {
+    status.textContent = "Files can't be chosen: select a folder.";
+  }
+}

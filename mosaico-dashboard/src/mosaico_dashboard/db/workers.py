@@ -1,4 +1,4 @@
-"""Repository: the worker's heartbeat and stop request (one row, name "ingest")."""
+"""Repository: the worker's heartbeat and stop request (one row, name "worker")."""
 
 from datetime import datetime, timedelta, timezone
 

@@ -191,6 +191,27 @@ class IngestFolder(DomainModel):
     files: list[BagFile]
 
 
+class FolderEntry(DomainModel):
+    """A subfolder or file in a FolderListing."""
+
+    name: str
+    path: str
+    is_folder: bool
+    size_bytes: int | None = None
+    is_bag: bool = False
+
+
+class FolderListing(DomainModel):
+    """A folder on this machine, for choosing the ingest folder: folders first, then files."""
+
+    path: str
+    parent: str | None
+    crumbs: list[FolderEntry]
+    entries: list[FolderEntry]
+    more: int = 0
+    error: str | None = None
+
+
 FILTERED_REASON = "Filtered"
 
 

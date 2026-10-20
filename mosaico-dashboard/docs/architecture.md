@@ -93,6 +93,7 @@ PostgreSQL 18 (`dashboard-db`), accessed with SQLAlchemy Core and psycopg 3, syn
 | `0d9a3c5e7b21` | baseline (empty schema) |
 | `b0a46eb62c9d` | table `job` |
 | `b4a3c9872c17` | table `worker` |
+| `31d0319b8897` | table `setting` |
 
 ### Tables
 
@@ -117,7 +118,14 @@ erDiagram
         timestamptz heartbeat_at "every 2 s while running"
         boolean stop_requested "set by Stop, cleared on start"
     }
+    setting {
+        varchar(60) key PK "ingest_dir"
+        text value
+        timestamptz updated_at
+    }
 ```
+
+`setting` holds what is changed from the UI; a missing row means the `.env` default.
 
 `progress` holds the latest `Progress` (domain model), written by the job process from the SDK
 progress callback (ADR-0033) at most twice a second:
@@ -180,7 +188,8 @@ sequenceDiagram
 ```
 
 The Ingest page (`/ingest`) has three tabs: Manual ingest, Watchdog (placeholder) and History
-(last 20 ingestion jobs). Manual ingest lists the bags in `DASHBOARD_INGEST_DIR` on the left;
+(last 20 ingestion jobs). Manual ingest lists the bags in the ingest folder on the left
+(chosen in the folder dialog, `setting.ingest_dir`, else `DASHBOARD_INGEST_DIR`);
 the right panel (`/ingest/detail`) shows the selected file's options and runs a dry run in the
 web process (`POST /ingest/dry-run`). "Ingest" checks and dry-runs again, queues the job, starts
 the worker if none is running and swaps the right panel to the job (URL `/ingest?job=<id>`).
@@ -239,13 +248,14 @@ mosaico-dashboard/
 │   │   ├── tables.py         # table definitions (SQLAlchemy Core)
 │   │   ├── jobs.py           # job queue: enqueue, claim, progress, finish, cancel
 │   │   ├── workers.py        # worker row: register, heartbeat, stop request, advisory lock
+│   │   ├── settings.py       # settings changed from the UI (key / value)
 │   │   ├── common.py         # helpers (UTC times from SQLite)
 │   │   ├── migrate.py        # upgrade_to_head under an advisory lock
 │   │   └── migrations/       # Alembic: env.py, script.py.mako, versions/
 │   ├── jobs/
 │   │   ├── worker.py         # Worker: heartbeat, claim, start the job process, cancel, outcome
 │   │   └── run_job.py        # job process entry point
-│   ├── services/             # use cases: overview, recordings, status, ingestion, worker, processes
+│   ├── services/             # use cases: overview, recordings, status, ingestion, folders, worker, processes
 │   └── web/
 │       ├── health.py         # /healthz, /readyz
 │       ├── dependencies.py   # get_gateway, get_engine, get_processes

@@ -117,5 +117,14 @@ alignment of left edges, sizes, empty states.
 - `.workspace`: grid `files | splitter | detail`, as tall as the window; the file panel width
   is `--files-width` (drag the `.splitter`, saved in `localStorage`).
 - `.files-panel`: `.folder-bar`, `.file-search` (`filterFiles`), `.file-list` (rows with
-  `data-name`; selectable rows load `#ingest-detail`).
+  `data-name`; selectable rows load `#ingest-detail`). The `.folder-bar` is a button: it loads
+  `/ingest/folders` into `<dialog id="folder-dialog">`, which `app.js` opens on swap.
+- `.dialog` (native `<dialog>`, modal, fixed height): `.dialog-head` (label + title, close),
+  content, `.dialog-foot` (`.actions` right). Esc closes it.
+- Folder dialog (a small file manager): `.folder-crumbs` (each part opens that folder),
+  `.folder-places` (Home, Ingest folder, Default (.env) when another is saved, Root) |
+  `.folder-list` (`..`, folders, then files; bags brighter than other files, sizes on the right),
+  `.folder-status` (what is selected). Click selects a row (`pickEntry`), double-click or Enter
+  opens a folder; "Select folder" is disabled while a file is selected. Footer: "Go to a path…"
+  + Go, Cancel, Select folder.
 - `.detail-panel`: `.panel-title` (label + title), compact `.stats` cells, `.actions`.

@@ -36,3 +36,14 @@ def test_only_one_worker_holds_the_lock(postgres_url):
     assert third is not None
     release_worker_lock(third)
     engine.dispose()
+
+
+def test_setting_upsert(postgres_engine):
+    from mosaico_dashboard.db.settings import delete_setting, get_setting, set_setting
+
+    with postgres_engine.begin() as c:
+        set_setting(c, "test_key", "a")
+        set_setting(c, "test_key", "b")
+        assert get_setting(c, "test_key") == "b"
+        delete_setting(c, "test_key")
+        assert get_setting(c, "test_key") is None

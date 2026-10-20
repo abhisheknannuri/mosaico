@@ -38,3 +38,11 @@ worker = Table(
     Column("heartbeat_at", DateTime(timezone=True)),
     Column("stop_requested", Boolean, nullable=False, default=False),
 )
+
+setting = Table(
+    "setting",
+    metadata,
+    Column("key", String(60), primary_key=True),
+    Column("value", Text, nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)

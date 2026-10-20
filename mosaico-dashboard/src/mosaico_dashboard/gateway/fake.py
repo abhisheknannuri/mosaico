@@ -21,7 +21,7 @@ from mosaico_dashboard.gateway.base import (
     MosaicoGateway,
     RecordingNotFound,
 )
-from mosaico_dashboard.gateway.files import list_bag_files
+from mosaico_dashboard.gateway.files import bag_extensions, list_bag_files
 
 
 class FakeGateway(MosaicoGateway):
@@ -60,6 +60,9 @@ class FakeGateway(MosaicoGateway):
 
     def list_bag_files(self, folder: Path) -> list[BagFile]:
         return list_bag_files(folder)
+
+    def bag_extensions(self) -> list[str]:
+        return bag_extensions()
 
     def ros_distros(self) -> list[str]:
         return ["ros1_noetic", "ros2_humble", "ros2_jazzy"]

@@ -509,9 +509,16 @@ hooks were already done in D-01.)
   routes `POST /ingest/worker/start|stop`, `DASHBOARD_MANAGE_WORKER` (false in compose and
   tests). Fix found in screenshots: `--blue` token was missing, so the running dot and the
   active bar border were invisible. 215 tests.
-- [ ] **D-25c Folder browse dialog.** Storage icon opens a dialog listing folders on this
+- [x] **D-25c Folder browse dialog** (built 2026-10-20, in review). Storage icon opens a dialog listing folders on this
   machine; the path can also be typed; saved in the dashboard database (`.env` is the
   default), shared by Manual and Watchdog (replaces D-29).
+  Done: table `setting` (key/value), `services/folders.py` (saved folder or `.env` default,
+  validation, folder listing), routes `GET /ingest/folders`, `POST /ingest/folder`; the whole
+  folder bar opens the dialog (native `<dialog>`), a small file manager after review: path
+  crumbs, places (Home, Ingest folder, Default (.env), Root), folders then files (bags
+  highlighted, sizes), click selects / double-click opens, "Select folder" only for folders,
+  "Go to a path…". Choosing the `.env` folder forgets the saved one. Queued jobs keep their
+  absolute file path. 228 tests.
 - [ ] Further polish rounds as needed.
 
 ## Phase 3: Export (production grade)

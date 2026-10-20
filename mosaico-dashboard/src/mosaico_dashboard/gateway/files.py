@@ -10,6 +10,10 @@ from mosaicolabs.watchdog.helpers import sequence_name_from_fileref
 from mosaico_dashboard.domain.models import BagFile
 
 
+def bag_extensions() -> list[str]:
+    return list(InjectorDispatcher.list_supported_ext())
+
+
 def list_bag_files(folder: Path) -> list[BagFile]:
     """Supported files (.mcap, .db3, .bag) in `folder` and its subfolders, sorted by path.
 

@@ -805,15 +805,38 @@ table.job-topics .bar-track {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  width: 100%;
   padding: var(--space-3) var(--space-4);
+  border: none;
   border-bottom: 1px solid var(--border);
   font-size: 0.85rem;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  color: var(--text);
 }
 
-.folder-bar > span {
+.folder-bar:hover {
+  background: var(--bg-raised);
+}
+
+.folder-text {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
+}
+
+.folder-change {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.folder-bar:hover .folder-change {
+  color: var(--heading);
 }
 
 .folder-name {
@@ -966,4 +989,209 @@ table.job-topics .bar-track {
   flex-wrap: wrap;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+/* folder dialog (ingest folder): crumbs, places | list, footer */
+.dialog {
+  width: min(880px, calc(100vw - 32px));
+  height: min(600px, calc(100vh - 32px));
+  padding: 0;
+  color: var(--text);
+  background: var(--bg-hi);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 60%);
+}
+
+.folder-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog-head h2 {
+  margin: var(--space-1) 0 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--heading);
+}
+
+.folder-crumbs button,
+.folder-places button,
+.folder-entry {
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.folder-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.folder-crumbs button {
+  padding: 2px 6px;
+  border: none;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.folder-crumbs button:hover,
+.folder-crumbs button[aria-current] {
+  color: var(--heading);
+  background: var(--bg-raised);
+}
+
+.folder-body {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.folder-places,
+.folder-list {
+  margin: 0;
+  padding: var(--space-2) 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.folder-places {
+  border-right: 1px solid var(--border);
+}
+
+.folder-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.folder-main .notice {
+  margin: var(--space-3) var(--space-4) 0;
+}
+
+.folder-list {
+  flex: 1;
+}
+
+.folder-places button,
+.folder-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 6px var(--space-4);
+  border: none;
+  font-size: 0.9rem;
+  text-align: left;
+  color: var(--text);
+  user-select: none;
+}
+
+.folder-places button:hover,
+.folder-entry:hover {
+  color: var(--heading);
+  background: var(--bg-raised);
+}
+
+.folder-places button[aria-current],
+.folder-entry[aria-selected] {
+  color: var(--heading);
+  background: var(--border);
+}
+
+.folder-places span,
+.folder-entry span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.folder-places svg,
+.folder-entry svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.folder-entry.file {
+  color: var(--text-dim);
+}
+
+.folder-entry.bag {
+  color: var(--text);
+}
+
+.entry-size {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.folder-empty {
+  padding: 6px var(--space-4);
+  font-size: 0.9rem;
+}
+
+.folder-status {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.dialog-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.dialog-foot .path-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  padding: 6px 10px;
+  color: var(--heading);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dialog-foot .path-input:focus {
+  outline: none;
+  border-color: var(--text-dim);
+}
+
+.dialog-foot .actions {
+  flex-wrap: nowrap;
+  margin: 0 0 0 var(--space-4);
 }

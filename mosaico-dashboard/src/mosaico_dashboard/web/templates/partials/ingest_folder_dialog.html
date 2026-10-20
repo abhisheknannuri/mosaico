@@ -1,0 +1,69 @@
+{# Content of #folder-dialog: a small file manager for the machine the dashboard runs on.
+   Click selects, double-click or Enter opens a folder; only folders can be selected. #}
+{% import "components.html" as ui %}
+{% macro opens(path) %}hx-get="/ingest/folders?tab={{ tab }}&path={{ path | urlencode }}" hx-target="#folder-dialog"{% endmacro %}
+<div class="folder-dialog">
+  <input type="hidden" id="folder-tab" name="tab" value="{{ tab }}">
+  <input type="hidden" id="folder-selection" name="path" value="{{ listing.path }}">
+  <div class="dialog-head">
+    <div>
+      <span class="label">Ingest folder</span>
+      <h2>Choose a folder</h2>
+    </div>
+    <button type="button" class="icon-button" aria-label="Close" onclick="this.closest('dialog').close()">✕</button>
+  </div>
+  <nav class="folder-crumbs" aria-label="Path">
+    {% for crumb in listing.crumbs %}
+      {% if not loop.first and not loop.previtem.name == "/" %}<span class="muted">/</span>{% endif %}
+      <button type="button" {{ opens(crumb.path) }}{% if loop.last %} aria-current="true"{% endif %}>{{ crumb.name }}</button>
+    {% endfor %}
+  </nav>
+  <div class="folder-body">
+    <ul class="folder-places">
+      {% for name, path in places.items() %}
+      <li><button type="button" {{ opens(path) }} title="{{ path }}"{% if path == listing.path %} aria-current="true"{% endif %}>
+        {% include "icons/house.svg" if name == "Home" else "icons/hard-drive.svg" if name == "Root" else "icons/folder.svg" %}<span>{{ name }}</span>
+      </button></li>
+      {% endfor %}
+    </ul>
+    <div class="folder-main">
+      {% if error %}
+        {% call ui.notice("error", error) %}{% endcall %}
+      {% elif listing.error %}
+        {% call ui.notice("warn", listing.error) %}{% endcall %}
+      {% endif %}
+      <ul class="folder-list">
+        {% if listing.parent %}
+        <li><button type="button" class="folder-entry" {{ opens(listing.parent) }}>{% include "icons/corner-left-up.svg" %}<span>..</span></button></li>
+        {% endif %}
+        {% for entry in listing.entries %}
+        <li>
+          {% if entry.is_folder %}
+          <button type="button" class="folder-entry" data-folder="true" data-path="{{ entry.path }}" onclick="pickEntry(this)"
+            {{ opens(entry.path) }} hx-trigger="dblclick, keydown[key=='Enter']">
+            {% include "icons/folder.svg" %}<span>{{ entry.name }}</span>
+          </button>
+          {% else %}
+          <button type="button" class="folder-entry file{% if entry.is_bag %} bag{% endif %}" onclick="pickEntry(this)">
+            {% include "icons/file.svg" %}<span>{{ entry.name }}</span><span class="entry-size">{{ entry.size_bytes | bytes }}</span>
+          </button>
+          {% endif %}
+        </li>
+        {% else %}
+          {% if not listing.error %}<li class="folder-empty muted">This folder is empty.</li>{% endif %}
+        {% endfor %}
+        {% if listing.more %}<li class="folder-empty muted">… and {{ listing.more }} more</li>{% endif %}
+      </ul>
+      <p class="folder-status" id="folder-status">Selected: <code>{{ listing.path }}</code></p>
+    </div>
+  </div>
+  <div class="dialog-foot">
+    <input type="text" id="folder-location" name="path" class="path-input" placeholder="Go to a path…" aria-label="Go to a path" autocomplete="off" spellcheck="false"
+      hx-get="/ingest/folders" hx-include="#folder-tab" hx-target="#folder-dialog" hx-trigger="keydown[key=='Enter']">
+    <button type="button" hx-get="/ingest/folders" hx-include="#folder-location, #folder-tab" hx-target="#folder-dialog">Go</button>
+    <div class="actions">
+      <button type="button" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="button" id="folder-select" class="primary" hx-post="/ingest/folder" hx-include="#folder-selection, #folder-tab" hx-target="#folder-dialog">Select folder</button>
+    </div>
+  </div>
+</div>

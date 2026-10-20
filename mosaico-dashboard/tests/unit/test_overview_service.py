@@ -1,9 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from mosaico_dashboard.gateway.fake import FakeGateway, sample_streams
-from mosaico_dashboard.services.overview import get_overview
+from mosaico_dashboard.services.overview import covered_time, get_overview
 
 
 def test_totals():
@@ -50,3 +50,36 @@ def test_empty_catalog():
     assert overview.recording_count == 0
     assert overview.storage_by_ontology == []
     assert overview.latest == []
+
+
+T0 = datetime(2026, 9, 1, 9, 0, tzinfo=timezone.utc)
+
+
+def stream_between(start_s: float, end_s: float):
+    return sample_streams()[0].model_copy(
+        update={
+            "data_start": T0 + timedelta(seconds=start_s),
+            "data_end": T0 + timedelta(seconds=end_s),
+        }
+    )
+
+
+def test_covered_time_counts_overlapping_streams_once():
+    streams = [stream_between(0, 60), stream_between(30, 90), stream_between(10, 20)]
+
+    assert covered_time(streams) == timedelta(seconds=90)
+
+
+def test_covered_time_skips_the_gap_between_appended_bags():
+    nine_days = 9 * 24 * 3600
+    streams = [stream_between(0, 60), stream_between(nine_days, nine_days + 90)]
+
+    assert covered_time(streams) == timedelta(seconds=150)
+
+
+def test_covered_time_ignores_streams_without_data():
+    empty = stream_between(0, 1).model_copy(
+        update={"data_start": None, "data_end": None}
+    )
+
+    assert covered_time([empty]) == timedelta()

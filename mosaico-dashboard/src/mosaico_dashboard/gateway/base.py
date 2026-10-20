@@ -53,6 +53,10 @@ class MosaicoGateway(Protocol):
         """
         ...
 
+    def bag_extensions(self) -> list[str]:
+        """File extensions the SDK can ingest (`.mcap`, …)."""
+        ...
+
     def ros_distros(self) -> list[str]:
         """ROS distributions the SDK can parse messages for (`ros2_humble`, …)."""
         ...

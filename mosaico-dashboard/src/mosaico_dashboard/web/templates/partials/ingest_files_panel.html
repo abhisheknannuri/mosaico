@@ -1,19 +1,23 @@
 {% import "components.html" as ui %}
 {# Folder, search and file list. `selectable` makes rows open the file in the right panel. #}
 <div class="panel files-panel">
-  <div class="folder-bar">
+  <button type="button" class="folder-bar" title="Choose the ingest folder"
+    hx-get="/ingest/folders?tab={{ 'manual' if selectable else 'watchdog' }}" hx-target="#folder-dialog">
     {% include "icons/hard-drive.svg" %}
     {% if folder.path %}
-      <span title="{{ folder.path }}">
+      <span class="folder-text">
         <span class="folder-name">{{ folder.path.rstrip("/").rsplit("/", 1)[-1] or folder.path }}</span>
         <code class="folder-path">{{ folder.path }}</code>
       </span>
     {% else %}
-      <span class="muted">No folder set: set <code>DASHBOARD_INGEST_DIR</code> in <code>.env</code> and restart.</span>
+      <span class="folder-text muted">No folder chosen</span>
     {% endif %}
-  </div>
+    <span class="folder-change">Change</span>
+  </button>
   {% if folder.status == "missing" %}
-    <p class="panel-note">This folder doesn't exist or isn't a folder. Check <code>DASHBOARD_INGEST_DIR</code>.</p>
+    <p class="panel-note">This folder doesn't exist or isn't a folder. Choose another one.</p>
+  {% elif folder.status == "not_configured" %}
+    <p class="panel-note">Choose the folder with your ROS bags.</p>
   {% elif folder.status == "ok" %}
     <div class="file-search">
       <input type="search" placeholder="Search files" aria-label="Search files" oninput="filterFiles(this)" autocomplete="off">
