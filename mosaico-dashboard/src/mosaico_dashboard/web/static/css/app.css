@@ -72,10 +72,15 @@ p {
   margin: 0 0 var(--space-3);
 }
 
+.muted {
+  color: var(--text-dim);
+}
+
 code {
   background: var(--bg);
   padding: 1px 6px;
   border-radius: 4px;
+  overflow-wrap: anywhere;
 }
 
 svg.lucide {
@@ -287,6 +292,7 @@ button:hover {
 
 .cards .card {
   margin-bottom: 0;
+  min-width: 0;
 }
 
 .card-header {
@@ -351,9 +357,23 @@ td.nowrap {
 
 td.name {
   color: var(--heading);
+  overflow-wrap: anywhere;
 }
 
-/* chips */
+td.name a {
+  color: var(--heading);
+  text-decoration: none;
+}
+
+td.name a:hover {
+  text-decoration: underline;
+}
+
+tbody tr[aria-selected="true"] {
+  background: var(--bg-raised);
+}
+
+/* chips (`chip ok` for a positive state) */
 .chip {
   display: inline-block;
   margin: 2px 6px 2px 0;
@@ -361,6 +381,57 @@ td.name {
   border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 0.8rem;
+}
+
+.chip.ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+/* text_field, key_value_rows */
+.field {
+  display: block;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  border: none;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: var(--space-1);
+  padding: 0;
+  color: var(--heading);
+  font-size: 0.9rem;
+}
+
+.field-hint {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.field input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  color: var(--heading);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--link);
+}
+
+.key-value-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 /* bar (rows of .bar-list) */
@@ -419,7 +490,7 @@ table.ontology-storage .bar-track {
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: var(--space-2) var(--space-5);
-  margin: 0;
+  margin: 0 0 var(--space-5);
   font-size: 0.9rem;
 }
 

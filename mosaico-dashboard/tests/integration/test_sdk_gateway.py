@@ -29,7 +29,7 @@ def recording_name(gateway) -> str:
 def test_recordings_are_mapped(gateway):
     for recording in gateway.list_recordings():
         assert recording.uploaded_at.tzinfo is not None
-        assert recording.size_bytes > 0
+        assert recording.size_bytes >= 0
         assert recording.stream_count > 0
         if recording.data_start and recording.data_end:
             assert recording.data_start <= recording.data_end

@@ -1,13 +1,26 @@
 """In-memory gateway for tests and UI work without mosaicod."""
 
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from mosaico_dashboard.domain.models import Recording, SensorStream, Upload
+from mosaico_dashboard.domain.models import (
+    BagFile,
+    IngestOutcome,
+    IngestRequest,
+    Progress,
+    Recording,
+    SensorStream,
+    TopicProgress,
+    Upload,
+)
 from mosaico_dashboard.gateway.base import (
+    GatewayError,
     GatewayUnavailable,
     MosaicoGateway,
     RecordingNotFound,
 )
+from mosaico_dashboard.gateway.files import list_bag_files
 
 
 class FakeGateway(MosaicoGateway):
@@ -41,6 +54,25 @@ class FakeGateway(MosaicoGateway):
     def list_streams(self, recording: str) -> list[SensorStream]:
         self.get_recording(recording)
         return [s for s in self._streams if s.recording == recording]
+
+    def list_bag_files(self, folder: Path) -> list[BagFile]:
+        return list_bag_files(folder)
+
+    def ingest(
+        self, request: IngestRequest, on_progress: Callable[[Progress], None]
+    ) -> IngestOutcome:
+        """Reports two steps of one 10-message topic; fails like mosaicod for an existing name."""
+        self._ensure_available()
+        if any(r.name == request.sequence_name for r in self._recordings):
+            raise GatewayError(
+                f"Flight returned already exists error: '{request.sequence_name}'"
+            )
+        for done in (0, 5, 10):
+            topic = TopicProgress(name="/imu", done=done, total=10, status=None)
+            on_progress(
+                Progress(topics=[topic], done=done, total=10, finished=done == 10)
+            )
+        return "completed"
 
     def close(self) -> None:
         pass

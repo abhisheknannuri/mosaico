@@ -11,6 +11,7 @@ packages = [{ include = "mosaico_dashboard", from = "src" }]
 
 [tool.poetry.scripts]
 mosaico-dashboard = "mosaico_dashboard.__main__:run"
+mosaico-dashboard-worker = "mosaico_dashboard.run_worker:run"
 
 # mosaicolabs (SDK) is installed separately: scripts/dev_setup.sh (dev), Dockerfile (prod).
 [tool.poetry.dependencies]
@@ -66,10 +67,10 @@ root_package = "mosaico_dashboard"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Layers: web > services > (gateway | db) > domain"
+name = "Layers: (web | jobs) > services > (gateway | db) > domain"
 type = "layers"
 layers = [
-    "mosaico_dashboard.web",
+    "mosaico_dashboard.web | mosaico_dashboard.jobs",
     "mosaico_dashboard.services",
     "mosaico_dashboard.gateway | mosaico_dashboard.db",
     "mosaico_dashboard.domain",

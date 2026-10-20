@@ -48,6 +48,7 @@ def create_app(
     )
     app.state.gateway = gateway
     app.state.engine = engine
+    app.state.settings = settings
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health.router)
     app.include_router(overview.router)

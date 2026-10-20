@@ -56,6 +56,31 @@
 </dl>
 {% endmacro %}
 
+{% macro text_field(label, name, value="", hint=None) %}
+{# A labelled single-line text input. #}
+<label class="field">
+  <span class="field-label">{{ label }}</span>
+  <input type="text" name="{{ name }}" value="{{ value }}">
+  {% if hint %}<span class="field-hint">{{ hint }}</span>{% endif %}
+</label>
+{% endmacro %}
+
+{% macro key_value_rows(label, name, id, rows=2) %}
+{# Pairs of inputs named {name}_key / {name}_value; "Add" copies the last row (addRow in app.js). #}
+<fieldset class="field key-value-rows">
+  <legend class="field-label">{{ label }}</legend>
+  <div id="{{ id }}">
+    {% for _ in range(rows) %}
+    <div class="key-value-row">
+      <input type="text" name="{{ name }}_key" placeholder="key" aria-label="Key">
+      <input type="text" name="{{ name }}_value" placeholder="value" aria-label="Value">
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" onclick="addRow('{{ id }}')">Add</button>
+</fieldset>
+{% endmacro %}
+
 {% macro empty_state(title) %}
 <div class="empty-state">
   <h2>{{ title }}</h2>

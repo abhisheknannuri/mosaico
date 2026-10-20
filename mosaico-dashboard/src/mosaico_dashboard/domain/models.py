@@ -1,7 +1,7 @@
 """Dashboard models: what the pages show, independent of the Mosaico SDK classes."""
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -96,3 +96,71 @@ class SensorStream(DomainModel):
         if self.data_start is None or self.data_end is None:
             return None
         return self.data_end - self.data_start
+
+
+class TopicProgress(DomainModel):
+    """Progress of one topic in an ingestion or export."""
+
+    name: str
+    done: int
+    total: int | None
+    status: str | None
+
+
+class Progress(DomainModel):
+    """Progress of an ingestion or export; `finished` once every message is processed."""
+
+    topics: list[TopicProgress]
+    done: int
+    total: int
+    finished: bool
+
+
+class IngestRequest(DomainModel):
+    """A ROS bag on this machine, to be ingested as one recording."""
+
+    file_path: str
+    sequence_name: str
+    metadata: dict[str, Any] = {}
+
+
+IngestOutcome = Literal["completed", "cancelled"]
+
+JobStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+
+
+class Job(DomainModel):
+    """Background work run by the worker, one at a time."""
+
+    id: str
+    kind: str
+    status: JobStatus
+    params: dict[str, Any]
+    progress: Progress | None
+    error: str | None
+    cancel_requested: bool
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class BagFile(DomainModel):
+    """A ROS bag in the ingest folder; `in_mosaico` is None when mosaicod couldn't be asked."""
+
+    relative_path: str
+    path: str
+    size_bytes: int
+    modified_at: datetime
+    recording_name: str
+    in_mosaico: bool | None = None
+
+
+IngestFolderStatus = Literal["not_configured", "missing", "ok"]
+
+
+class IngestFolder(DomainModel):
+    """The configured ingest folder and the bags in it, sorted by path."""
+
+    path: str | None
+    status: IngestFolderStatus
+    files: list[BagFile]

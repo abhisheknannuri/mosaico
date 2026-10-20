@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     )
     migrate_on_start: bool = True
 
+    # Worker
+    worker_poll_seconds: float = 1.0
+
+    # Ingestion: folder on this machine with the ROS bags to ingest
+    ingest_dir: Path | None = None
+
     # mosaicod connection
     mosaico_host: str = "localhost"
     mosaico_port: int = 6726

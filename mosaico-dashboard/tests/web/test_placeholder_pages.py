@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.parametrize("path, title", [("/ingest", "Ingest"), ("/export", "Export")])
+@pytest.mark.parametrize("path, title", [("/export", "Export")])
 def test_placeholder_page(client, path, title):
     response = client.get(path)
 
@@ -11,7 +11,7 @@ def test_placeholder_page(client, path, title):
 
 
 def test_placeholder_fragment_for_htmx(client):
-    text = client.get("/ingest", headers={"HX-Request": "true"}).text
+    text = client.get("/export", headers={"HX-Request": "true"}).text
 
     assert "Coming soon" in text
     assert "<html" not in text

@@ -1,21 +1,34 @@
 """Gateway backed by the Mosaico SDK (one shared client, fresh data on every call)."""
 
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pyarrow.flight as flight
 from mosaicolabs import MosaicoClient, SequenceHandler, TopicHandler
+from mosaicolabs.bridges.base_injector import InjectionStatus
+from mosaicolabs.bridges.ros import RosbagInjector, ROSInjectionConfig
+from mosaicolabs.bridges.ui import ProgressSnapshot
 
-from mosaico_dashboard.domain.models import Recording, SensorStream, Upload
+from mosaico_dashboard.domain.models import (
+    BagFile,
+    IngestOutcome,
+    IngestRequest,
+    Progress,
+    Recording,
+    SensorStream,
+    TopicProgress,
+    Upload,
+)
 from mosaico_dashboard.gateway.base import (
     GatewayError,
     GatewayUnavailable,
     MosaicoGateway,
     RecordingNotFound,
 )
+from mosaico_dashboard.gateway.files import list_bag_files
 
 
 class SdkGateway(MosaicoGateway):
@@ -68,6 +81,26 @@ class SdkGateway(MosaicoGateway):
                 if topic_handler is not None:
                     streams.append(_to_sensor_stream(recording, topic, topic_handler))
             return streams
+
+    def list_bag_files(self, folder: Path) -> list[BagFile]:
+        return list_bag_files(folder)
+
+    def ingest(
+        self, request: IngestRequest, on_progress: Callable[[Progress], None]
+    ) -> IngestOutcome:
+        config = ROSInjectionConfig(
+            file_path=Path(request.file_path),
+            sequence_name=request.sequence_name,
+            metadata=request.metadata,
+            host=self._host,
+            port=self._port,
+            mosaico_api_key=self._api_key,
+            enable_tls=self._tls,
+            tls_cert_path=str(self._tls_cert_path) if self._tls_cert_path else None,
+            progress_callback=lambda snapshot: on_progress(_to_progress(snapshot)),
+        )
+        status = RosbagInjector(config).run()
+        return "cancelled" if status == InjectionStatus.CANCELLED else "completed"
 
     def close(self) -> None:
         with self._lock:
@@ -161,4 +194,16 @@ def _to_sensor_stream(
         size_bytes=handler.total_size_bytes,
         data_start=_to_optional_datetime(handler.timestamp_ns_min),
         data_end=_to_optional_datetime(handler.timestamp_ns_max),
+    )
+
+
+def _to_progress(snapshot: ProgressSnapshot) -> Progress:
+    return Progress(
+        topics=[
+            TopicProgress(name=t.name, done=t.done, total=t.total, status=t.status)
+            for t in snapshot.topics
+        ],
+        done=snapshot.done,
+        total=snapshot.total,
+        finished=snapshot.finished,
     )

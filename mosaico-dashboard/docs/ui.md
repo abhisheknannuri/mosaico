@@ -46,15 +46,19 @@ Inside the partial, in this order when present: `.stats` row → `.cards` grid �
 | `page_header(title, subtitle, back_href, back_label)` | Top of every page | `ui.page_header("Recordings", "Newest first.")` |
 | `stat(label, value, hint, title)` | A single number; `hint` says what it means, `title` is the hover text (exact value); group in `<div class="stats">` | `ui.stat("Stored", t \| bytes, "compressed, in mosaicod", t \| bytes_exact)` |
 | `card(title, id, link_href, link_label)` | A panel around any content; group in `<div class="cards">` for a 2-column grid | `{% call ui.card("Latest") %}…{% endcall %}` |
-| `chips(items)` | Short labels (ontology tags) | `ui.chips(summary.ontology_tags)` |
+| `chips(items)` | Short labels (ontology tags); a single chip with class `chip ok` marks a positive state | `ui.chips(summary.ontology_tags)`, "in Mosaico" on the Ingest page |
 | `share_bar(share, title)` | A bar filled to `share` (0–1), e.g. in a table cell | storage by ontology type |
 | `bar(label, value, share, title)` | One row of a `<ul class="bar-list">`: label, bar, value, percentage; share 0–1 | — |
-| `key_values(mapping)` | Metadata, properties | `ui.key_values(recording.metadata)` |
+| `key_values(mapping)` | Properties of one item | selected file on the Ingest page |
+| `text_field(label, name, value, hint)` | Labelled single-line input with optional hint | recording name |
+| `key_value_rows(label, name, id, rows)` | Pairs of inputs `{name}_key` / `{name}_value`; "Add" copies the last row (`addRow` in `app.js`) | metadata |
 | `empty_state(title)` | Nothing to show yet; body via `{% call %}` | no recordings |
 
 Plain `<table>` is styled globally; add `class="num"` to numeric `th`/`td` (right-aligned, tabular
 digits, never wrapped), `class="name"` to the identifying column and `class="nowrap"` to short
 text that must stay on one line (dates, durations).
+Links in a `name` cell look like the name (underlined on hover); a selected row has
+`aria-selected="true"`. Long names wrap instead of widening the table.
 
 ## Formatting
 

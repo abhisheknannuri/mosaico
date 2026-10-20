@@ -17,7 +17,7 @@
 ## Stack facts
 - SDK installed with `pip install -e ../mosaico-sdk-py` in dev (`scripts/dev_setup.sh`), non-editable in Docker. Not in `pyproject.toml`.
 - Lint/format: ruff, same config as `mosaico-sdk-py`. Hooks in repo-root `.pre-commit-config.yaml`.
-- Layers `web → services → (gateway | db) → domain`, enforced by import-linter (`docs/architecture.md`). Only `gateway/` imports `mosaicolabs`. Create folders only when a task needs them.
+- Layers `(web | jobs) → services → (gateway | db) → domain`, enforced by import-linter (`docs/architecture.md`). Only `gateway/` imports `mosaicolabs`. Create folders only when a task needs them.
 - Keep `docs/architecture.md` up to date when structure changes.
 - Gateway, services and page routes are synchronous (`def`), because the SDK blocks (ADR-0012).
 - UI: follow `docs/ui.md` (component macros, tokens, no page-specific CSS); screenshot-review every UI change.

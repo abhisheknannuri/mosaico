@@ -1,8 +1,17 @@
 """What the dashboard needs from mosaicod, independent of how it is fetched."""
 
+from collections.abc import Callable
+from pathlib import Path
 from typing import Protocol
 
-from mosaico_dashboard.domain.models import Recording, SensorStream
+from mosaico_dashboard.domain.models import (
+    BagFile,
+    IngestOutcome,
+    IngestRequest,
+    Progress,
+    Recording,
+    SensorStream,
+)
 
 
 class GatewayError(Exception):
@@ -34,6 +43,23 @@ class MosaicoGateway(Protocol):
 
     def list_streams(self, recording: str) -> list[SensorStream]:
         """Raises RecordingNotFound."""
+        ...
+
+    def list_bag_files(self, folder: Path) -> list[BagFile]:
+        """ROS bags in a local folder, named as the SDK watchdog would name them.
+
+        Raises ValueError if `folder` doesn't exist or isn't a folder.
+        """
+        ...
+
+    def ingest(
+        self, request: IngestRequest, on_progress: Callable[[Progress], None]
+    ) -> IngestOutcome:
+        """Ingest a ROS bag as a new recording, reporting progress as it goes.
+
+        Blocks until done; Ctrl-C (SIGINT) ends it as "cancelled". Raises on failure, e.g.
+        when the recording already exists.
+        """
         ...
 
     def close(self) -> None: ...

@@ -122,6 +122,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Dashboard worker: runs ingestion jobs, one at a time.
+  dashboard-worker:
+    image: mosaico-dashboard:local
+    container_name: mosaico-dashboard-worker
+    profiles: ["production"]
+    command: ["mosaico-dashboard-worker"]
+    environment:
+      DASHBOARD_MOSAICO_HOST: mosaicod-server
+      DASHBOARD_MOSAICO_PORT: "6726"
+      DASHBOARD_DATABASE_URL: postgresql+psycopg://dashboard:dashboard@dashboard-db:5432/dashboard
+      NO_PROXY: mosaicod-server,localhost,127.0.0.1
+      no_proxy: mosaicod-server,localhost,127.0.0.1
+    networks:
+      - mosaico
+    depends_on:
+      mosaicod-server:
+        condition: service_started
+      dashboard-db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pg-data:
   dashboard-pg-data:

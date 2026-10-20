@@ -369,20 +369,43 @@ hooks were already done in D-01.)
   unreachable database the app starts, `/readyz` 503, `/recordings` 200.
 - Reused from the first pass (backup branch), limited to the database foundation.
 
-### D-19 · Job queue and worker · `todo`
-- Jobs in Postgres, worker process running one job at a time, files in sequence.
-- The injector runs in a child process of the worker, so Cancel = Ctrl-C (SIGINT →
-  `InjectionStatus.CANCELLED`) and the SDK's console/logging set-up stays out of the worker.
-- First pass: D-22 (notes).
+### D-19 · Job queue and worker · `done`
+- [x] Table `job` (migration `b0a46eb62c9d`): kind, status (queued / running / completed /
+  failed / cancelled), params, progress, error, cancel flag, times. `db/jobs.py`: enqueue,
+  get, list, claim (`SKIP LOCKED`), save progress, finish, request cancel, fail interrupted.
+- [x] `gateway.ingest(request, on_progress)`: `RosbagInjector` with the D-17 callback, SDK
+  snapshot → domain `Progress`; FakeGateway simulates it.
+- [x] `services/ingestion.py`: enqueue, run (in the child: progress + outcome on the job row;
+  Ctrl-C → cancelled; any exception → failed with its message), cancel.
+- [x] Worker (`mosaico-dashboard-worker`, `jobs/worker.py`): one job at a time in a child
+  process `python -m mosaico_dashboard.jobs.run_job <id>` (own session); cancel / worker stop
+  → SIGINT (kill after 60 s); no outcome → failed with exit code; jobs left running → failed
+  "Interrupted" on start; one warning per database outage. Compose `dashboard-worker`
+  (production profile). Setting `DASHBOARD_WORKER_POLL_SECONDS`.
+- [x] Tests: queue (8), service (5), worker with real child processes on a SQLite file (6),
+  Postgres concurrent claims; 120 tests. Live (`temp/queue_ingestion.py`): demo bag ingested
+  with progress every 0.5 s (18,990 messages, 4.5 s); cancel after 1 s → cancelled; SIGTERM
+  stops the worker cleanly.
+- Found: with the SDK default `on_error=Report`, a cancelled (or failed) ingestion still
+  leaves a finalized recording with what was uploaded (`d19_cancel_test`: 3 topics, 0 bytes,
+  locked); with `Delete` the SDK removes it. Decide the dashboard default (D-22 / D-24).
 
-### D-20 · Ingest page: folder, file list, one file · `todo`
-- Setting `DASHBOARD_INGEST_DIR` (absolute path, from `.env`); the page lists `.mcap`, `.db3`,
-  `.bag` files in it (size, modified) with a tick when a recording with the file's name is
-  already in Mosaico.
-- Select one file → recording name (editable) + optional metadata.
-- To decide: default name rule (file name without extension, or the watchdog's rule
-  `run_01/drive.mcap` → `run_01-drive__mcap` so manual and watchdog agree); page layout (files
-  on one side, options for the selected file on the other).
+### D-20 · Ingest page: folder, file list, one file · `done`
+- [x] Setting `DASHBOARD_INGEST_DIR`; page states for "not set" and "not found".
+- [x] `gateway.list_bag_files(folder)` (`gateway/files.py`): the SDK watchdog's
+  `LocalFileSource` with `InjectorDispatcher` extensions (.mcap, .db3, .bag; recursive, case
+  sensitive), names from `sequence_name_from_fileref`.
+- [x] Decided: default name = the watchdog's rule (`run_01/drive.mcap` → `run_01-drive__mcap`),
+  editable; layout = files left, options right.
+- [x] File list (path, size, "in Mosaico" when a recording with the file's name exists; unknown
+  when mosaicod is down); selecting a file (htmx, URL `?file=`; only listed files) shows path,
+  size, modified, recording name and metadata rows. Components `text_field`,
+  `key_value_rows`, `chip ok`.
+- [x] Tests: listing on real temp folders, service states, page (133 tests). Screenshot fixes:
+  table overflowing its card (date column moved to the details), noisy link styling, long paths.
+- Found: recordings ingested earlier under their plain file name (examples, `seed_demo.py`,
+  e.g. `demo_field_test_01`) are not recognised as "in Mosaico", since the rule gives
+  `demo_field_test_01-demo_field_test_01__mcap` for the same file.
 
 ### D-21 · Dry run step · `todo`
 - Runs the injector with `dry_run=True` on the chosen config (D-16 result) and shows it:
@@ -395,6 +418,8 @@ hooks were already done in D-01.)
   unreachable; API key without `write`), the SDK message otherwise.
 - User can leave the page: indicator in the top bar ("Ingesting … 42 %") links back; refresh
   or restart reconnects to the job.
+- Default `on_error=Delete` (agreed 2026-10-19): a failed or cancelled ingestion leaves no
+  recording, so the file isn't marked ingested and can be retried under the same name.
 
 ### D-23 · Ingestion history · `todo`
 - Past runs from the database: file, recording, started, duration, result, error.
@@ -403,6 +428,8 @@ hooks were already done in D-01.)
 - Defaults from settings; per run: topic selection (from the dry run), ROS distro, keep or
   delete partial data on failure (`on_error`), append to an existing recording
   (`update_if_exists`).
+- "Keep partial data" (`Report`): the recording stays with what was uploaded and an error
+  notification; the file list shows it as partially ingested, not with a plain tick.
 
 ## Phase 3: Export (production grade)
 

@@ -1,6 +1,62 @@
 {% import "components.html" as ui %}
 <section id="ingest">
-  {% call ui.empty_state("Coming soon") %}
-    <p>Uploading and ingesting ROS bags (.mcap, .db3, .bag) will be available here.</p>
+{% if folder.status == "not_configured" %}
+  {% call ui.empty_state("No ingest folder set") %}
+    <p>Set <code>DASHBOARD_INGEST_DIR</code> to the folder with your ROS bags (.mcap, .db3, .bag)
+      and restart the dashboard.</p>
   {% endcall %}
+{% elif folder.status == "missing" %}
+  {% call ui.empty_state("Ingest folder not found") %}
+    <p><code>{{ folder.path }}</code> doesn't exist or isn't a folder. Check
+      <code>DASHBOARD_INGEST_DIR</code>.</p>
+  {% endcall %}
+{% else %}
+  <div class="cards">
+    {% call ui.card("Files") %}
+      <p><code>{{ folder.path }}</code></p>
+      {% if folder.files and folder.files[0].in_mosaico is none %}
+        <p class="muted">mosaicod is unreachable: already ingested files can't be marked.</p>
+      {% endif %}
+      {% if folder.files %}
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th class="num">Size</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for f in folder.files %}
+          {% set url = "/ingest?file=" ~ (f.relative_path | urlencode) %}
+          <tr{% if selected and f.relative_path == selected.relative_path %} aria-selected="true"{% endif %}>
+            <td class="name"><a href="{{ url }}" hx-get="{{ url }}" hx-target="#ingest" hx-swap="outerHTML" hx-push-url="true">{{ f.relative_path }}</a></td>
+            <td class="num" title="{{ f.size_bytes | bytes_exact }}">{{ f.size_bytes | bytes }}</td>
+            <td class="nowrap">{% if f.in_mosaico %}<span class="chip ok" title="A recording named {{ f.recording_name }} exists">in Mosaico</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p class="muted">No .mcap, .db3 or .bag files in this folder.</p>
+      {% endif %}
+    {% endcall %}
+
+    {% call ui.card(selected.relative_path if selected else "Options") %}
+      {% if selected %}
+        {{ ui.key_values({"Path": selected.path, "Size": selected.size_bytes | bytes, "Modified": selected.modified_at | datetime}) }}
+        <form id="ingest-options">
+          <input type="hidden" name="file" value="{{ selected.relative_path }}">
+          {{ ui.text_field("Recording name", "sequence_name", selected.recording_name, "From the file path, the same way the SDK watchdog names recordings.") }}
+          {% if selected.in_mosaico %}
+            <p class="muted">A recording with this name is already in Mosaico. Use another name to ingest the file again.</p>
+          {% endif %}
+          {{ ui.key_value_rows("Metadata (optional)", "metadata", "metadata-rows") }}
+        </form>
+      {% else %}
+        <p class="muted">Select a file to set its recording name and metadata.</p>
+      {% endif %}
+    {% endcall %}
+  </div>
+{% endif %}
 </section>
