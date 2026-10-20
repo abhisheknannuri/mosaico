@@ -56,3 +56,13 @@ def test_message_count_only_counts_accepted_topics():
 def test_format_number():
     assert format_number(12000) == "12,000"
     assert format_number(None) == "—"
+
+
+def test_topics_left_out_by_the_user_are_not_skipped_topics():
+    left_out = DryRunTopic(name="/odom", accepted=False, reason="Filtered")
+    result = DryRun(request=REQUEST, topics=[OK, left_out])
+
+    assert left_out.filtered
+    assert result.rejected == []
+    assert result.filtered == [left_out]
+    assert result.verdict == "ok"

@@ -88,7 +88,8 @@ alignment of left edges, sizes, empty states.
 
 - `button.primary` for the main action of a step (Start ingestion); plain `button` otherwise.
   Destructive actions ask first (`hx-confirm`).
-- `label.checkbox` for a checkbox with its label.
+- `label.checkbox` for a checkbox with its label; `<select>` inside `.field` like inputs.
+- Optional settings go in a collapsed `<details class="advanced">` ("Advanced options").
 - Live progress uses SSE through the htmx extension (`static/vendor/htmx-ext-sse-2.2.4.js`),
   loaded only by pages that need it (`{% block scripts %}` in `base.html`): `hx-ext="sse"
   sse-connect=… sse-close="done"` on the container, `sse-swap="progress"` on the part to

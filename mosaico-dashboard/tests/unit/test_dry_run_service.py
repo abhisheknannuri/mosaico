@@ -60,3 +60,120 @@ def test_sdk_errors_are_reported():
 
     assert result.verdict == "blocked"
     assert result.error == "Unable to initialize ROSLoader"
+
+
+def test_options_go_into_the_request():
+    from mosaico_dashboard.domain.models import IngestOptions
+
+    options = IngestOptions(
+        ros_distro="ros2_humble",
+        keep_partial=True,
+        update_if_exists=True,
+        topics=["/imu/data", "/robot/custom"],
+    )
+
+    result = dry_run_ingestion(FakeGateway(), FILE, "run", [], [], options)
+
+    assert result.request is not None
+    assert result.request.ros_distro == "ros2_humble"
+    assert result.request.keep_partial and result.request.update_if_exists
+    assert result.request.topics == ["/imu/data", "/robot/custom"]
+    assert [t.name for t in result.filtered] == ["/gps/fix"]
+    assert [t.name for t in result.rejected] == ["/robot/custom"]
+
+
+def test_unknown_ros_distro():
+    from mosaico_dashboard.domain.models import IngestOptions
+
+    result = dry_run_ingestion(
+        FakeGateway(), FILE, "run", [], [], IngestOptions(ros_distro="ros9")
+    )
+
+    assert result.error == "Unknown ROS distribution 'ros9'."
+
+
+def test_no_topic_selected():
+    from mosaico_dashboard.domain.models import IngestOptions
+
+    result = dry_run_ingestion(
+        FakeGateway(), FILE, "run", [], [], IngestOptions(topics=[])
+    )
+
+    assert result.error == "Select at least one topic to ingest."
+
+
+def appending(topics):
+    from mosaico_dashboard.domain.models import DryRunTopic
+
+    return FakeGateway(
+        dry_run_topics=[
+            DryRunTopic(name=name, accepted=True, adapter="A", msg_count=1)
+            for name in topics
+        ]
+    )
+
+
+def test_appending_skips_topics_the_recording_already_has():
+    from mosaico_dashboard.domain.models import IngestOptions
+    from mosaico_dashboard.services.ingestion import ALREADY_IN_RECORDING
+
+    result = dry_run_ingestion(
+        appending(["/chassis/imu", "/new"]),
+        FILE,
+        "r2b_galileo2_0",
+        [],
+        [],
+        IngestOptions(update_if_exists=True),
+    )
+
+    assert result.verdict == "warn"
+    assert [(t.name, t.reason) for t in result.rejected] == [
+        ("/chassis/imu", ALREADY_IN_RECORDING)
+    ]
+    assert result.request is not None and result.request.topics == ["/new"]
+
+
+def test_appending_only_existing_topics_is_blocked():
+    from mosaico_dashboard.domain.models import IngestOptions
+
+    result = dry_run_ingestion(
+        appending(["/chassis/imu"]),
+        FILE,
+        "r2b_galileo2_0",
+        [],
+        [],
+        IngestOptions(update_if_exists=True),
+    )
+
+    assert result.verdict == "blocked"
+
+
+def test_appending_to_a_new_name_changes_nothing():
+    from mosaico_dashboard.domain.models import IngestOptions
+
+    result = dry_run_ingestion(
+        appending(["/chassis/imu"]),
+        FILE,
+        "brand_new",
+        [],
+        [],
+        IngestOptions(update_if_exists=True),
+    )
+
+    assert result.verdict == "ok"
+    assert result.request is not None and result.request.topics is None
+
+
+def test_appending_needs_mosaicod():
+    from mosaico_dashboard.domain.models import IngestOptions
+
+    result = dry_run_ingestion(
+        FakeGateway(available=False),
+        FILE,
+        "r2b_galileo2_0",
+        [],
+        [],
+        IngestOptions(update_if_exists=True),
+    )
+
+    assert result.error is not None and "can't be checked" in result.error

@@ -479,6 +479,27 @@ tbody tr[aria-selected="true"] {
   border-color: var(--link);
 }
 
+.field select {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  color: var(--heading);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+details.advanced {
+  margin: 0 0 var(--space-4);
+}
+
+details.advanced summary {
+  margin-bottom: var(--space-3);
+  color: var(--heading);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 .key-value-row {
   display: grid;
   grid-template-columns: 1fr 2fr;

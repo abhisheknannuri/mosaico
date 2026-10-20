@@ -30,8 +30,10 @@ class Settings(BaseSettings):
     # Worker
     worker_poll_seconds: float = 1.0
 
-    # Ingestion: folder on this machine with the ROS bags to ingest
+    # Ingestion: folder on this machine with the ROS bags to ingest, and form defaults
     ingest_dir: Path | None = None
+    ingest_ros_distro: str | None = None
+    ingest_keep_partial: bool = False
 
     # mosaicod connection
     mosaico_host: str = "localhost"

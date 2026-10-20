@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import Engine
 
+from mosaico_dashboard.domain.models import IngestOptions
 from mosaico_dashboard.gateway.base import MosaicoGateway
 from mosaico_dashboard.services.ingestion import (
     dry_run_ingestion,
@@ -23,6 +24,22 @@ from mosaico_dashboard.web.rendering import render, templates
 router = APIRouter(include_in_schema=False)
 
 
+def form_options(
+    ros_distro: str,
+    keep_partial: bool,
+    update_if_exists: bool,
+    topics: list[str],
+    topics_chosen: bool,
+) -> IngestOptions:
+    """`topics` is used only when the form had the topic checkboxes (after a dry run)."""
+    return IngestOptions(
+        ros_distro=ros_distro or None,
+        keep_partial=keep_partial,
+        update_if_exists=update_if_exists,
+        topics=topics if topics_chosen else None,
+    )
+
+
 @router.get("/ingest", response_class=HTMLResponse)
 def ingest(
     request: Request,
@@ -31,11 +48,13 @@ def ingest(
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
-    folder = get_ingest_folder(gateway, settings.ingest_dir)
+    folder = get_ingest_folder(gateway, settings.ingest_dir, engine)
     context = {
         "folder": folder,
         "selected": find_bag_file(folder, file),
         "history": list_ingestions(engine),
+        "ros_distros": gateway.ros_distros(),
+        "defaults": settings,
     }
     return render(request, "pages/ingest.html", "partials/ingest.html", context)
 
@@ -47,6 +66,11 @@ def dry_run(
     sequence_name: str = Form(""),
     metadata_key: list[str] = Form(default=[]),
     metadata_value: list[str] = Form(default=[]),
+    ros_distro: str = Form(""),
+    keep_partial: bool = Form(False),
+    update_if_exists: bool = Form(False),
+    topic: list[str] = Form(default=[]),
+    topics_chosen: bool = Form(False),
     gateway: MosaicoGateway = Depends(get_gateway),
     settings: Settings = Depends(get_app_settings),
 ) -> HTMLResponse:
@@ -57,8 +81,11 @@ def dry_run(
         return templates.TemplateResponse(
             request, "partials/ingest_dry_run.html", context
         )
+    options = form_options(
+        ros_distro, keep_partial, update_if_exists, topic, topics_chosen
+    )
     result = dry_run_ingestion(
-        gateway, selected, sequence_name, metadata_key, metadata_value
+        gateway, selected, sequence_name, metadata_key, metadata_value, options
     )
     context = {"result": result, "error": result.error}
     return templates.TemplateResponse(request, "partials/ingest_dry_run.html", context)
@@ -72,6 +99,11 @@ def start(
     metadata_key: list[str] = Form(default=[]),
     metadata_value: list[str] = Form(default=[]),
     skipped_confirmed: bool = Form(False),
+    ros_distro: str = Form(""),
+    keep_partial: bool = Form(False),
+    update_if_exists: bool = Form(False),
+    topic: list[str] = Form(default=[]),
+    topics_chosen: bool = Form(False),
     gateway: MosaicoGateway = Depends(get_gateway),
     engine: Engine = Depends(get_engine),
     settings: Settings = Depends(get_app_settings),
@@ -91,6 +123,7 @@ def start(
         metadata_key,
         metadata_value,
         skipped_confirmed,
+        form_options(ros_distro, keep_partial, update_if_exists, topic, topics_chosen),
     )
     if job is None:
         context = {

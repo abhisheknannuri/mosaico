@@ -61,11 +61,27 @@ class FakeGateway(MosaicoGateway):
     def list_bag_files(self, folder: Path) -> list[BagFile]:
         return list_bag_files(folder)
 
+    def ros_distros(self) -> list[str]:
+        return ["ros1_noetic", "ros2_humble", "ros2_jazzy"]
+
     def dry_run(self, request: IngestRequest) -> list[DryRunTopic]:
-        """Two accepted topics and one without an adapter, unless set in the constructor."""
-        if self._dry_run_topics is None:
-            return sample_dry_run()
-        return list(self._dry_run_topics)
+        """Two accepted topics and one without an adapter, unless set in the constructor;
+        topics outside `request.topics` are reported as filtered, like the SDK."""
+        topics = (
+            sample_dry_run() if self._dry_run_topics is None else self._dry_run_topics
+        )
+        if request.topics is None:
+            return list(topics)
+        if not request.topics:
+            raise RuntimeError(
+                "Unable to initialize ROSLoader: No connections matched criteria."
+            )
+        return [
+            t
+            if t.name in request.topics
+            else DryRunTopic(name=t.name, accepted=False, reason="Filtered")
+            for t in topics
+        ]
 
     def ingest(
         self, request: IngestRequest, on_progress: Callable[[Progress], None]

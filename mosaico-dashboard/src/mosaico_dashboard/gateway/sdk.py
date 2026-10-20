@@ -13,6 +13,7 @@ from mosaicolabs.bridges.ros import RosbagInjector, ROSInjectionConfig
 from mosaicolabs.bridges.topic_status import TopicStatus
 from mosaicolabs.bridges.ui import ProgressSnapshot
 from mosaicolabs.enum import SessionLevelErrorPolicy
+from rosbags.typesys import Stores
 
 from mosaico_dashboard.domain.models import (
     BagFile,
@@ -89,6 +90,9 @@ class SdkGateway(MosaicoGateway):
     def list_bag_files(self, folder: Path) -> list[BagFile]:
         return list_bag_files(folder)
 
+    def ros_distros(self) -> list[str]:
+        return [store.value for store in Stores if store != Stores.EMPTY]
+
     def dry_run(self, request: IngestRequest) -> list[DryRunTopic]:
         injector = RosbagInjector(self._injection_config(request))
         route_sdk_logs_to_root()
@@ -124,6 +128,9 @@ class SdkGateway(MosaicoGateway):
             file_path=Path(request.file_path),
             sequence_name=request.sequence_name,
             metadata=request.metadata,
+            topics=request.topics,
+            ros_distro=Stores(request.ros_distro) if request.ros_distro else None,
+            update_if_exists=request.update_if_exists,
             host=self._host,
             port=self._port,
             mosaico_api_key=self._api_key,

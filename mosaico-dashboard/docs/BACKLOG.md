@@ -454,17 +454,36 @@ hooks were already done in D-01.)
 - [x] Tests: kind filter, duration, database down, page (all results, order, empty); 184
   tests. Screenshot fix: names wrapping mid-word → paths break after `/`, names stay whole.
 
-### D-24 · Basic and advanced options · `todo`
-- Defaults from settings; per run: topic selection (from the dry run), ROS distro, keep or
-  delete partial data on failure (`on_error`), append to an existing recording
+### D-24 · Basic and advanced options · `done`
+- [x] Settings defaults `DASHBOARD_INGEST_ROS_DISTRO` (empty = auto), `DASHBOARD_INGEST_KEEP_PARTIAL`.
+- [x] "Advanced options" (collapsed): ROS distribution (auto, or one of the SDK's `rosbags`
+  stores, validated), keep partial data (`on_error=Report`), append to the existing recording
   (`update_if_exists`).
-- "Keep partial data" (`Report`): the recording stays with what was uploaded and an error
-  notification; the file list shows it as partially ingested, not with a plain tick.
+- [x] Topic selection: checkboxes in the dry-run table; Start sends the ticked topics plus the
+  unsupported ones, so unticked topics come back "Filtered" (no confirmation needed) while
+  unsupported ones keep their reason. None ticked → "No topic selected".
+- [x] Appending: the dry run asks mosaicod which topics the recording already has; those are
+  skipped ("Already in the recording", confirmation needed) and left out of the SDK's topic
+  filter; all clashing → blocked.
+- [x] File list: "partial" when the latest run for that name failed or was cancelled with data
+  kept; "already exists" hint mentions Append.
+- [x] Tests (options in the request, distro, empty selection, filtered vs skipped, clashes,
+  partial, form defaults, SDK config mapping); 198 tests. Live: filter → "not selected";
+  append with only existing topics → blocked; append with one new topic → 1 s, only the new
+  topic added, existing data untouched; keep partial + cancel → recording kept, "partial".
+- Found (SDK, before the clash check): appending a bag whose topics already exist makes the
+  SDK fail `topic_create` on every message (88k error lines, ~60 s instead of 4 s), report
+  COMPLETED although those topics weren't written, and fail a cancel with "Session is empty";
+  noted for the upstream Discussion (D-34). mosaicod reports 0 bytes for the kept partial
+  recording.
 
 ### D-25 · Ingest UI: more intuitive, richer, more immersive · `todo`
 - Iterate on the web UI components of the Ingest and job pages until the flow (pick a file →
   dry run → start → follow → result) feels clear and engaging; scope and ideas agreed step by
   step before building.
+- Noted: the top-bar indicator polls `/ingest/active` every 3 s on every page (one access-log
+  line each). Poll fast only while an ingestion is active (e.g. 30 s when idle, the server
+  choosing the interval in its response), and keep these requests out of the access log.
 
 ## Phase 3: Export (production grade)
 
@@ -487,6 +506,8 @@ hooks were already done in D-01.)
 ### D-33 · Object store source (SDK `ObjectStoreFileSource`, e.g. S3) · `todo`
 ### D-34 · **Upstream**: GitHub Discussion for the D-16 / D-17 SDK changes · `todo`
 - `CONTRIBUTING.md`: Mosaico does **not** accept PRs from non-approved contributors.
+- Also raise: with `update_if_exists`, topics that already exist fail on every message, the run
+  still returns COMPLETED, and a cancel then fails finalizing an empty session (found in D-24).
 
 ## Phase 5: Recording pages (plan: `plans/recording-pages.md`)
 

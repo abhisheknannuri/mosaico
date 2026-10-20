@@ -94,7 +94,7 @@ erDiagram
         varchar(36) id PK "UUID"
         varchar(40) kind "ingest"
         varchar(16) status "queued | running | completed | failed | cancelled (indexed)"
-        json params "IngestRequest: file_path, sequence_name, metadata, keep_partial"
+        json params "IngestRequest: file_path, sequence_name, metadata, keep_partial, update_if_exists, ros_distro, topics"
         json progress "Progress, null until the first report"
         text error "message when failed"
         boolean cancel_requested "set by Cancel on a running job"
@@ -308,7 +308,7 @@ Contracts (all must be `KEPT`):
 `gateway/base.py` defines `MosaicoGateway`, a Protocol of what the dashboard needs from
 mosaicod: `check_connection`, `list_recordings`, `get_recording`, `list_streams`,
 `list_bag_files` (local ROS bags, listed and named by the SDK watchdog's `LocalFileSource` and
-`sequence_name_from_fileref`, `gateway/files.py`), `dry_run`, `ingest`, `close`. Implementations inherit it explicitly: `SdkGateway` and `FakeGateway` (in memory,
+`sequence_name_from_fileref`, `gateway/files.py`), `ros_distros`, `dry_run`, `ingest`, `close`. Implementations inherit it explicitly: `SdkGateway` and `FakeGateway` (in memory,
 tests).
 
 - **Synchronous**: the SDK blocks; services are plain functions, page routes are `def`, and

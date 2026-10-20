@@ -123,6 +123,9 @@ class IngestRequest(DomainModel):
     sequence_name: str
     metadata: dict[str, Any] = {}
     keep_partial: bool = False
+    update_if_exists: bool = False
+    ros_distro: str | None = None
+    topics: list[str] | None = None
 
 
 IngestOutcome = Literal["completed", "cancelled"]
@@ -174,6 +177,7 @@ class BagFile(DomainModel):
     modified_at: datetime
     recording_name: str
     in_mosaico: bool | None = None
+    partial: bool = False
 
 
 IngestFolderStatus = Literal["not_configured", "missing", "ok"]
@@ -187,6 +191,9 @@ class IngestFolder(DomainModel):
     files: list[BagFile]
 
 
+FILTERED_REASON = "Filtered"
+
+
 class DryRunTopic(DomainModel):
     """A topic of a bag, as a real ingestion would handle it."""
 
@@ -195,6 +202,11 @@ class DryRunTopic(DomainModel):
     adapter: str | None = None
     msg_count: int | None = None
     reason: str | None = None
+
+    @property
+    def filtered(self) -> bool:
+        """Left out by the user's topic selection."""
+        return self.reason == FILTERED_REASON
 
 
 DryRunVerdict = Literal["ok", "warn", "blocked"]
@@ -214,7 +226,12 @@ class DryRun(DomainModel):
 
     @property
     def rejected(self) -> list[DryRunTopic]:
-        return [t for t in self.topics if not t.accepted]
+        """Topics the SDK can't ingest (not those left out by the user)."""
+        return [t for t in self.topics if not t.accepted and not t.filtered]
+
+    @property
+    def filtered(self) -> list[DryRunTopic]:
+        return [t for t in self.topics if t.filtered]
 
     @property
     def message_count(self) -> int:
@@ -245,3 +262,12 @@ def recording_name_problem(name: str) -> str | None:
         shown = " ".join("space" if c == " " else c for c in bad)
         return f"The recording name can't contain: {shown}"
     return None
+
+
+class IngestOptions(DomainModel):
+    """Per-run options of the Ingest form; `topics` None means every topic."""
+
+    ros_distro: str | None = None
+    keep_partial: bool = False
+    update_if_exists: bool = False
+    topics: list[str] | None = None

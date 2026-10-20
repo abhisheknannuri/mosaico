@@ -103,3 +103,26 @@ def test_ingestion_deletes_partial_data_unless_kept(gateway):
     assert gateway._injection_config(request).on_error == SessionLevelErrorPolicy.Delete
     kept = request.model_copy(update={"keep_partial": True})
     assert gateway._injection_config(kept).on_error == SessionLevelErrorPolicy.Report
+
+
+def test_ingestion_options_reach_the_sdk_config(gateway):
+    from rosbags.typesys import Stores
+
+    from mosaico_dashboard.domain.models import IngestRequest
+
+    request = IngestRequest(
+        file_path="/bags/a.mcap",
+        sequence_name="a",
+        ros_distro="ros2_humble",
+        update_if_exists=True,
+        topics=["/imu"],
+    )
+
+    config = gateway._injection_config(request)
+
+    assert config.ros_distro == Stores.ROS2_HUMBLE
+    assert config.update_if_exists is True
+    assert config.topics == ["/imu"]
+    assert (
+        "ros2_humble" in gateway.ros_distros() and "empty" not in gateway.ros_distros()
+    )

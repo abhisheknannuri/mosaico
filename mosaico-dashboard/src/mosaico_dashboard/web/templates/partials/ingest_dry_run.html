@@ -12,14 +12,20 @@
     {% call ui.notice("warn", result.rejected | length ~ " of " ~ result.topics | length ~ " topics would be skipped") %}
       <p>The recording <code>{{ result.request.sequence_name }}</code> would contain the other {{ result.accepted | length }} topics ({{ result.message_count | number }} messages). Skipped topics are listed below with the reason.</p>
     {% endcall %}
+  {% elif result.filtered %}
+    {% call ui.notice("error", "No topic selected") %}
+      <p>Select at least one topic to ingest.</p>
+    {% endcall %}
   {% else %}
     {% call ui.notice("error", "No topic can be ingested") %}
-      <p>The SDK has no adapter for any topic of this file. See the reasons below.</p>
+      <p>None of the topics of this file can be ingested. See the reasons below.</p>
     {% endcall %}
   {% endif %}
+  <input type="hidden" name="topics_chosen" value="true">
   <table>
     <thead>
       <tr>
+        <th><span class="muted">Ingest</span></th>
         <th>Topic</th>
         <th>Adapter / reason</th>
         <th class="num">Messages</th>
@@ -28,13 +34,23 @@
     <tbody>
     {% for topic in result.accepted %}
       <tr>
+        <td><input type="checkbox" name="topic" value="{{ topic.name }}" checked aria-label="Ingest {{ topic.name }}"></td>
         <td class="name">{{ topic.name }}</td>
         <td>{{ topic.adapter or "—" }}</td>
         <td class="num">{{ topic.msg_count | number }}</td>
       </tr>
     {% endfor %}
+    {% for topic in result.filtered %}
+      <tr>
+        <td><input type="checkbox" name="topic" value="{{ topic.name }}" aria-label="Ingest {{ topic.name }}"></td>
+        <td class="name">{{ topic.name }}</td>
+        <td><span class="muted">not selected</span></td>
+        <td class="num">—</td>
+      </tr>
+    {% endfor %}
     {% for topic in result.rejected %}
       <tr>
+        <td><input type="hidden" name="topic" value="{{ topic.name }}"></td>
         <td class="name">{{ topic.name }}</td>
         <td><span class="chip warn">skipped</span> {{ topic.reason }}</td>
         <td class="num">—</td>

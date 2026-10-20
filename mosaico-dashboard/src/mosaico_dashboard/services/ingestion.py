@@ -17,20 +17,29 @@ from mosaico_dashboard.db.jobs import (
 from mosaico_dashboard.domain.models import (
     BagFile,
     DryRun,
+    DryRunTopic,
     IngestFolder,
+    IngestOptions,
     IngestRequest,
     Job,
     JobStatus,
     Progress,
     recording_name_problem,
 )
-from mosaico_dashboard.gateway.base import GatewayUnavailable, MosaicoGateway
+from mosaico_dashboard.gateway.base import (
+    GatewayUnavailable,
+    MosaicoGateway,
+    RecordingNotFound,
+)
 
 INGEST_JOB = "ingest"
 
 
-def get_ingest_folder(gateway: MosaicoGateway, folder: Path | None) -> IngestFolder:
-    """The bags in the ingest folder, each marked when a recording with its name exists."""
+def get_ingest_folder(
+    gateway: MosaicoGateway, folder: Path | None, engine: Engine | None = None
+) -> IngestFolder:
+    """The bags in the ingest folder, each marked when a recording with its name exists,
+    and as partial when its latest ingestion failed or was cancelled with data kept."""
     if folder is None:
         return IngestFolder(path=None, status="not_configured", files=[])
     try:
@@ -41,14 +50,34 @@ def get_ingest_folder(gateway: MosaicoGateway, folder: Path | None) -> IngestFol
         names = {r.name for r in gateway.list_recordings()}
     except GatewayUnavailable:
         return IngestFolder(path=str(folder), status="ok", files=files)
+    partial = _partially_ingested(engine) if engine is not None else set()
     return IngestFolder(
         path=str(folder),
         status="ok",
         files=[
-            f.model_copy(update={"in_mosaico": f.recording_name in names})
+            f.model_copy(
+                update={
+                    "in_mosaico": f.recording_name in names,
+                    "partial": f.recording_name in names
+                    and f.recording_name in partial,
+                }
+            )
             for f in files
         ],
     )
+
+
+def _partially_ingested(engine: Engine) -> set[str]:
+    """Recording names whose latest ingestion ended without completing, with data kept."""
+    jobs = list_ingestions(engine, limit=500) or []
+    latest: dict[str, Job] = {}
+    for job in jobs:
+        latest.setdefault(job.params["sequence_name"], job)
+    return {
+        name
+        for name, job in latest.items()
+        if job.status in ("failed", "cancelled") and job.params.get("keep_partial")
+    }
 
 
 def metadata_from_rows(keys: list[str], values: list[str]) -> dict[str, str]:
@@ -73,8 +102,10 @@ def dry_run_ingestion(
     sequence_name: str,
     metadata_keys: list[str],
     metadata_values: list[str],
+    options: IngestOptions | None = None,
 ) -> DryRun:
     """Checks the form and asks the SDK what ingesting the bag would do."""
+    options = options or IngestOptions()
     sequence_name = sequence_name.strip()
     problem = recording_name_problem(sequence_name)
     if problem:
@@ -83,14 +114,59 @@ def dry_run_ingestion(
         metadata = metadata_from_rows(metadata_keys, metadata_values)
     except ValueError as error:
         return DryRun(request=None, error=str(error))
+    if options.ros_distro and options.ros_distro not in gateway.ros_distros():
+        return DryRun(
+            request=None, error=f"Unknown ROS distribution '{options.ros_distro}'."
+        )
+    if options.topics == []:
+        return DryRun(request=None, error="Select at least one topic to ingest.")
     request = IngestRequest(
-        file_path=file.path, sequence_name=sequence_name, metadata=metadata
+        file_path=file.path,
+        sequence_name=sequence_name,
+        metadata=metadata,
+        **options.model_dump(),
     )
     try:
         topics = gateway.dry_run(request)
     except Exception as error:
         return DryRun(request=request, error=str(error) or type(error).__name__)
+    if request.update_if_exists:
+        try:
+            return _without_existing_topics(gateway, request, topics)
+        except GatewayUnavailable as error:
+            return DryRun(
+                request=request,
+                error=f"mosaicod is not reachable, so the existing recording can't be checked: {error}",
+            )
     return DryRun(request=request, topics=topics)
+
+
+ALREADY_IN_RECORDING = "Already in the recording"
+
+
+def _without_existing_topics(
+    gateway: MosaicoGateway, request: IngestRequest, topics: list[DryRunTopic]
+) -> DryRun:
+    """When appending, topics the recording already has are skipped and left out of the
+    SDK's topic filter."""
+    try:
+        existing = {s.topic for s in gateway.list_streams(request.sequence_name)}
+    except RecordingNotFound:
+        return DryRun(request=request, topics=topics)
+    clashing = {t.name for t in topics if t.accepted and t.name in existing}
+    if not clashing:
+        return DryRun(request=request, topics=topics)
+    wanted = request.topics if request.topics is not None else [t.name for t in topics]
+    filtered = request.model_copy(
+        update={"topics": [name for name in wanted if name not in clashing]}
+    )
+    marked = [
+        DryRunTopic(name=t.name, accepted=False, reason=ALREADY_IN_RECORDING)
+        if t.name in clashing
+        else t
+        for t in topics
+    ]
+    return DryRun(request=filtered, topics=marked)
 
 
 def start_ingestion(
@@ -101,11 +177,12 @@ def start_ingestion(
     metadata_keys: list[str],
     metadata_values: list[str],
     skipped_confirmed: bool,
+    options: IngestOptions | None = None,
 ) -> tuple[DryRun, Job | None]:
     """Checks the form and dry-runs again; queues the job when nothing blocks and skipped
     topics, if any, were confirmed. Returns the dry run and the job (None if not queued)."""
     result = dry_run_ingestion(
-        gateway, file, sequence_name, metadata_keys, metadata_values
+        gateway, file, sequence_name, metadata_keys, metadata_values, options
     )
     if result.request is None or result.verdict == "blocked":
         return result, None
@@ -139,7 +216,8 @@ def get_active_ingestion(engine: Engine) -> Job | None:
 _HINTS = [
     (
         ("already exists",),
-        "A recording with this name already exists in Mosaico. Choose another name.",
+        "A recording with this name already exists in Mosaico. Choose another name, or "
+        'tick "Append to the existing recording" in the advanced options.',
     ),
     (
         ("unavailable", "failed to connect", "connection refused"),

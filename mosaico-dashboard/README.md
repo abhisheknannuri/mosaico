@@ -64,7 +64,8 @@ poetry run mosaico-dashboard-worker
 
 It runs one job at a time, each in its own child process (Ctrl-C stops the worker and cancels
 the running job). The Ingest page lists the ROS bags in `DASHBOARD_INGEST_DIR` (an absolute path
-on this machine, set in `.env`).
+on this machine, set in `.env`); `DASHBOARD_INGEST_ROS_DISTRO` and `DASHBOARD_INGEST_KEEP_PARTIAL`
+set the defaults of its advanced options.
 
 ## Demo data
 

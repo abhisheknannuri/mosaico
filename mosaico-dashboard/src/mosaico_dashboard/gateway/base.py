@@ -53,6 +53,10 @@ class MosaicoGateway(Protocol):
         """
         ...
 
+    def ros_distros(self) -> list[str]:
+        """ROS distributions the SDK can parse messages for (`ros2_humble`, …)."""
+        ...
+
     def dry_run(self, request: IngestRequest) -> list[DryRunTopic]:
         """What ingesting the bag would do, per topic, without contacting mosaicod.
 

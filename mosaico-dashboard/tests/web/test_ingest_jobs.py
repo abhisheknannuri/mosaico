@@ -182,3 +182,58 @@ def test_history_when_the_database_is_down(bags):
 
     assert "drive.mcap" in text
     assert "database is not reachable" in text
+
+
+def test_advanced_options_with_defaults_from_settings(bags):
+    app = create_app(
+        Settings(
+            ingest_dir=bags, ingest_ros_distro="ros2_humble", ingest_keep_partial=True
+        ),
+        gateway=FakeGateway(),
+        engine=memory_engine(),
+    )
+
+    text = TestClient(app).get("/ingest", params={"file": "drive.mcap"}).text
+
+    assert "Advanced options" in text
+    assert '<option value="ros2_humble" selected>' in text
+    assert 'name="keep_partial" value="true" checked' in text
+    assert 'name="update_if_exists"' in text
+
+
+def test_dry_run_lets_the_user_pick_topics(bags):
+    text = make(bags).post("/ingest/dry-run", data=FORM).text
+
+    assert 'name="topics_chosen" value="true"' in text
+    assert 'type="checkbox" name="topic" value="/imu/data" checked' in text
+    assert 'type="hidden" name="topic" value="/robot/custom"' in text
+
+
+def test_start_with_topics_left_out(bags):
+    client = make(bags)
+    data = FORM | {
+        "topics_chosen": "true",
+        "topic": ["/imu/data", "/robot/custom"],
+        "skipped_confirmed": "true",
+        "ros_distro": "ros2_jazzy",
+        "update_if_exists": "true",
+    }
+
+    response = client.post("/ingest/start", data=data)
+
+    job_id = response.headers["HX-Redirect"].rsplit("/", 1)[-1]
+    from mosaico_dashboard.services.ingestion import get_ingestion
+
+    job = get_ingestion(engine_of(client), job_id)
+    assert job is not None
+    assert job.params["topics"] == ["/imu/data", "/robot/custom"]
+    assert job.params["ros_distro"] == "ros2_jazzy"
+    assert job.params["update_if_exists"] is True
+
+
+def test_start_with_no_topic_selected(bags):
+    data = FORM | {"topics_chosen": "true", "topic": ["/robot/custom"]}
+
+    text = make(bags).post("/ingest/start", data=data).text
+
+    assert "No topic selected" in text
