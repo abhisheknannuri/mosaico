@@ -1,139 +1,116 @@
 # Mosaico Dashboard
 
-Web dashboard for the Mosaico Data-Platform: FastAPI backend, server-rendered HTML with htmx.
+A web dashboard for the Mosaico Data-Platform. It runs on the machine that has the ROS bags and
+talks to mosaicod through the Python SDK; users only need a browser.
 
-## Setting up the dashboard environment
+- **Overview**: recordings, storage, recorded time and streams per ontology type.
+- **Recordings**: every recording with its date, duration, ontology types, streams and size.
+- **Ingest**: pick a bag from a folder on this machine, dry run (what will be ingested and what
+  is skipped, and why), ingest with live progress, cancel, history. Options: ROS distribution,
+  keep partial data, append to an existing recording, topic selection.
 
-### 1. Get the code
+Status: prototype. FastAPI with server-rendered HTML (Jinja2 + htmx), Postgres for the
+dashboard's own state (ingestion jobs). Architecture: [`docs/architecture.md`](docs/architecture.md).
+
+## 1. Install
+
+Requirements: Poetry 2.5.1+ (`pipx install poetry`), Python 3.10+ (`poetry python install 3.12`),
+Docker with Docker Compose.
 
 ```bash
 git clone https://github.com/abhisheknannuri/mosaico.git
-cd mosaico/
+cd mosaico
 git checkout AN/FastAPI_Dashboard
 cd mosaico-dashboard
-```
-
-### 2. Requirements
-
-- Poetry 2.5.1 or higher (Run `pipx install poetry`)
-- - Python 3.10 or higher (Run `poetry python install 3.12`)
-- Docker with Docker Compose
-
-### 3. Install
-
-```bash
 bash ./scripts/dev_setup.sh
 ```
 
-This installs the dashboard dependencies into `.venv` and the Mosaico SDK from
-`../mosaico-sdk-py` in editable mode.
+`dev_setup.sh` installs the dashboard into `.venv` and the SDK from `../mosaico-sdk-py` in
+editable mode (the dashboard uses two small SDK additions from this branch, see
+[SDK changes](#sdk-changes)). `poetry sync` removes the SDK; run `dev_setup.sh` again after it.
 
-> `poetry sync` removes the SDK (it is not in `poetry.lock`). Run `dev_setup.sh` again after it.
+## 2. Start mosaicod and the dashboard database
 
-### 4. Start mosaicod and the dashboard database
-
-From the repository root (starts mosaicod, its Postgres, and `dashboard-db` on port 5433):
+From the repository root:
 
 ```bash
 docker compose -f docker/devel/dashboard-compose.yml --profile development up -d
 ```
 
-### 5. Configure
+This starts mosaicod (port 6726) with its Postgres, and `dashboard-db` (Postgres, port 5433).
+
+## 3. Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Settings are `DASHBOARD_*` variables, read from the environment or `.env`. The example enables
-auto-reload and coloured logs for development.
+All settings are `DASHBOARD_*` variables in `.env` (or the environment). The defaults work with
+the compose setup above; the ones you may want to change:
 
-### 6. Run the dashboard
+| Setting | Default | |
+| --- | --- | --- |
+| `DASHBOARD_INGEST_DIR` | not set | Folder with the ROS bags (absolute path). Can also be chosen on the Ingest page. |
+| `DASHBOARD_MOSAICO_HOST` / `_PORT` | `localhost` / `6726` | mosaicod |
+| `DASHBOARD_DATABASE_URL` | `dashboard-db` on port 5433 | The dashboard's own database |
+| `DASHBOARD_MANAGE_WORKER` | `true` | The web app starts the ingestion worker when needed |
 
-```bash
-poetry run mosaico-dashboard
-```
+The full list with comments is in [`.env.example`](.env.example).
 
-- Health check: <http://127.0.0.1:8000/healthz>
-- API docs: <http://127.0.0.1:8000/docs>
+## 4. Add demo data (optional)
 
-Ingestion runs in a separate worker process. The web app starts it with the first ingestion and
-stops it on shutdown; the bar at the top of the Ingest page shows it, with Start and Stop. It runs
-one job at a time, each in its own child process; stopping it cancels the running job and keeps
-the queued ones. To run it yourself instead, set `DASHBOARD_MANAGE_WORKER=false` and start it in
-a second terminal:
-
-```bash
-poetry run mosaico-dashboard-worker
-```
-
-Only one worker runs at a time; a second one exits. The Ingest page lists the ROS bags in the
-ingest folder: `DASHBOARD_INGEST_DIR` (an absolute path on this machine, set in `.env`) until
-another one is chosen on the page (click the folder bar; saved in the dashboard database;
-choosing the `.env` folder again goes back to it); `DASHBOARD_INGEST_ROS_DISTRO` and `DASHBOARD_INGEST_KEEP_PARTIAL`
-set the defaults of its advanced options.
-
-## Demo data
-
-With mosaicod running, add three small synthetic ROS 2 recordings (IMU, GPS, odometry, camera,
-battery, temperature; different projects, sites and robots):
+Three small synthetic ROS 2 recordings (IMU, GPS, odometry, camera, battery, temperature):
 
 ```bash
 poetry run python scripts/seed_demo.py
 ```
 
-Bags are written to `demo-data/` (git-ignored). Re-running skips recordings mosaicod already has.
+The bags are written to `demo-data/`; set `DASHBOARD_INGEST_DIR` to its absolute path to try
+ingesting them again under other names.
 
-## Running everything in containers
+## 5. Run
 
-From the repository root:
+```bash
+poetry run mosaico-dashboard
+```
+
+Open <http://127.0.0.1:8000>. Database migrations run on start.
+
+Ingestion runs in a separate worker process. The first ingestion starts it; the bar at the top of
+the Ingest page shows it, with Start and Stop, and it stops with the web app. It runs one job at
+a time; stopping it cancels the running job and keeps the queued ones. To run the worker
+yourself, set `DASHBOARD_MANAGE_WORKER=false` and start it in a second terminal:
+
+```bash
+poetry run mosaico-dashboard-worker
+```
+
+Everything in containers instead (from the repository root):
 
 ```bash
 docker compose -f docker/devel/dashboard-compose.yml --profile production up -d --build
 ```
 
-## Frontend
+## SDK changes
 
-Server-rendered HTML (Jinja2) with [htmx](https://htmx.org) **2.0.11**, vendored in
-`src/mosaico_dashboard/web/static/vendor/` (no CDN). To upgrade, replace the file and update
-the `<script>` tag in `templates/base.html`.
+Two additions in `mosaico-sdk-py` on this branch (see its `CHANGELOG.md`), both backwards
+compatible:
 
-## Code standards
+- `RosbagInjector.dry_run()` / `MCAPInjector.dry_run()` return a `DryRunReport` (accepted and
+  rejected topics with reasons) instead of only printing a table.
+- Injector and extractor configs take an optional `progress_callback`, which receives a
+  `ProgressSnapshot` (per topic and overall) at most every 0.5 s. The dashboard stores it and
+  streams it to the browser.
 
-Same as `mosaico-sdk-py`: ruff for linting and formatting, plus pyright for type checking and
-pytest for tests (config in `pyproject.toml`).
-
-Run all checks:
-
-```bash
-bash ./scripts/check.sh
-```
-
-CI (`.github/workflows/dashboard-ci.yml`) runs the same script on Python 3.10 and 3.13,
-then builds the Docker image and checks that the container starts.
-
-Integration tests need mosaicod running (development profile); without it they are skipped:
+## Development
 
 ```bash
-poetry run pytest -m integration
+bash ./scripts/check.sh   # format, lint, import rules, types, tests
 ```
 
-Database tests need `dashboard-db` (development profile, or `DASHBOARD_TEST_DATABASE_URL`); they
-create and use a separate `dashboard_test` database, and are skipped without Postgres:
-
-```bash
-poetry run pytest -m database
-```
-
-The dashboard applies database migrations when it starts (`DASHBOARD_MIGRATE_ON_START`). To
-create a new migration after changing `db/tables.py`:
-
-```bash
-poetry run alembic revision --autogenerate -m "describe the change"
-```
-
-Fix formatting and lint issues:
-
-```bash
-poetry run ruff format .
-poetry run ruff check --fix .
-```
+- Tests marked `integration` need mosaicod, tests marked `database` need `dashboard-db`; both are
+  skipped when those aren't running.
+- After changing `db/tables.py`: `poetry run alembic revision --autogenerate -m "..."`.
+- CI (`.github/workflows/dashboard-ci.yml`) runs `check.sh` on Python 3.10 and 3.13 and builds
+  the Docker image.
+- Design notes: [`docs/architecture.md`](docs/architecture.md), UI rules: [`docs/ui.md`](docs/ui.md).
